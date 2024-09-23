@@ -90,13 +90,14 @@ export class MatchmakingProcessor extends WorkerHost {
         }
 
         this.matchmakingTimeout = setTimeout(async () => {
-          if (players.length === 4) {
+          if (players.length > 1) {
+            // if (players.length === 4) {
             const matchedPlayers = players.splice(0, 4);
             await this.createMatch(matchedPlayers);
           } else {
-            await this.askPlayersToStart(
-              players.slice(0, players.length >= 3 ? 3 : 2),
-            );
+            // await this.askPlayersToStart(
+            //   players.slice(0, players.length >= 3 ? 3 : 2),
+            // );
           }
         }, 10000); // 10 segundos de espera
       }
