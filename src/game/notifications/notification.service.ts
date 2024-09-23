@@ -14,13 +14,22 @@ export class NotificationService {
     this.logger.setContext(NotificationService.name);
   }
 
+  getPlayers(gameState: GameState) {
+    return gameState.players.map((player) => ({
+      position: gameState.players.indexOf(player),
+      qtdPdras: gameState.hands[player].length,
+      name: player,
+    }));
+  }
+
   notifyPlayersOfGameStart(gameState: GameState) {
+    const players = this.getPlayers(gameState);
     gameState.players.forEach((playerId, index) => {
       const message = {
         roomId: gameState.roomId,
         betAmount: gameState.betAmount,
         betTotal: gameState.betAmount * gameState.players.length,
-        players: gameState.players,
+        players,
         hands: gameState.hands[playerId],
         board: gameState.board,
         yourPosition: index,
@@ -41,10 +50,12 @@ export class NotificationService {
     tile: Tile,
     side: 'left' | 'right',
   ) {
+    const players = this.getPlayers(gameState);
     gameState.players.forEach((player) => {
       const message = {
         roomId: gameState.roomId,
         playerWhoMoved: playerId,
+        players,
         tilePlayed: tile,
         side: side,
         board: gameState.board,
@@ -58,10 +69,11 @@ export class NotificationService {
   }
 
   notifyPlayersOfGameUpdate(gameState: GameState) {
+    const players = this.getPlayers(gameState);
     gameState.players.forEach((playerId) => {
       const playerGameState = {
         roomId: gameState.roomId,
-        players: gameState.players,
+        players,
         board: gameState.board,
         currentTurn: gameState.players[gameState.turnIndex],
         boardEnds: gameState.boardEnds,
@@ -77,6 +89,7 @@ export class NotificationService {
   }
 
   notifyPlayersOfPass(gameState: GameState, playerId: string) {
+    const players = this.getPlayers(gameState);
     gameState.players.forEach((player) => {
       this.gatewayService.notifyPlayer(player, 'player_passed', {
         playerId,
@@ -89,7 +102,7 @@ export class NotificationService {
         boardEnds: gameState.boardEnds,
         hands: gameState.hands[player],
         currentTurn: gameState.players[gameState.turnIndex],
-        players: gameState.players,
+        players,
       });
     });
   }
@@ -115,11 +128,13 @@ export class NotificationService {
     winner: string,
     scores: Record<string, number>,
   ) {
+    const players = this.getPlayers(gameState);
     gameState.players.forEach((playerId) => {
       this.gatewayService.notifyPlayer(playerId, 'game_over', {
         roomId: gameState.roomId,
         winner,
         scores,
+        players,
         finalBoard: gameState.board,
         yourFinalHandScore: scores[playerId],
       });
@@ -149,9 +164,10 @@ export class NotificationService {
   }
 
   sendGameStateToPlayer(gameState: GameState, playerId: string) {
+    const players = this.getPlayers(gameState);
     const playerGameState = {
       roomId: gameState.roomId,
-      players: gameState.players,
+      players,
       hands: gameState.hands[playerId] || [],
       board: gameState.board,
       currentTurn: gameState.players[gameState.turnIndex],
