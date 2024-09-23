@@ -364,7 +364,10 @@ export class GatewayService
       return { error: 'Player not in a game' };
     }
     try {
-      const gameState = await this.gameStateManager.getGameState(roomId);
+      const gameState = await this.gameStateManager.getPlayerGameState(
+        roomId,
+        playerId,
+      );
       this.notifyPlayer(playerId, 'game_state_update', gameState);
       return { message: 'Game state sent' };
     } catch (error) {

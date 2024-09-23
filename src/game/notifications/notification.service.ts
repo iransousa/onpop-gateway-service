@@ -18,6 +18,8 @@ export class NotificationService {
     gameState.players.forEach((playerId, index) => {
       const message = {
         roomId: gameState.roomId,
+        betAmount: gameState.betAmount,
+        betTotal: gameState.betAmount * gameState.players.length,
         players: gameState.players,
         hands: gameState.hands[playerId],
         board: gameState.board,
@@ -79,6 +81,8 @@ export class NotificationService {
       this.gatewayService.notifyPlayer(player, 'player_passed', {
         playerId,
         nextTurn: gameState.players[gameState.turnIndex],
+        betAmount: gameState.betAmount,
+        betTotal: gameState.betAmount * gameState.players.length,
         roomId: gameState.roomId,
         playerWhoMoved: playerId,
         board: gameState.board,
@@ -150,9 +154,10 @@ export class NotificationService {
       players: gameState.players,
       hands: gameState.hands[playerId] || [],
       board: gameState.board,
-      moveHistory: gameState.moveHistory,
       currentTurn: gameState.players[gameState.turnIndex],
       boardEnds: gameState.boardEnds,
+      betAmount: gameState.betAmount,
+      betTotal: gameState.betAmount * gameState.players.length,
     };
 
     this.gatewayService.notifyPlayer(

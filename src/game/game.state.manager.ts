@@ -86,6 +86,24 @@ export class GameStateManager {
     }
   }
 
+  async getPlayerGameState(roomId: string, playerId: string): Promise<any> {
+    try {
+      const gameState = await this.getGameState(roomId);
+      return {
+        roomId: gameState.roomId,
+        players: gameState.players,
+        hands: gameState.hands[playerId] || [],
+        board: gameState.board,
+        currentTurn: gameState.players[gameState.turnIndex],
+        boardEnds: gameState.boardEnds,
+        betAmount: gameState.betAmount,
+        betTotal: gameState.betAmount * gameState.players.length,
+      };
+    } catch (error) {
+      throw new GameError('CACHE_ERROR', 'Error accessing the cache');
+    }
+  }
+
   async getRoomIdByPlayerId(playerId: string): Promise<string | null> {
     return await this.redisClient.get(`player:${playerId}:room`);
   }
