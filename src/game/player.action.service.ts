@@ -202,7 +202,7 @@ export class PlayerActionService {
     gameState: GameState,
     playerId: string,
     tile: Tile,
-    side: 'left' | 'right',
+    side: 'left' | 'right' | null | undefined,
   ) {
     // Remove a pedra da mão do jogador
     gameState.hands[playerId] = gameState.hands[playerId].filter(
@@ -230,6 +230,7 @@ export class PlayerActionService {
         const temp = tile.left;
         tile.left = tile.right;
         tile.right = temp;
+        tile.side = side;
       }
 
       // Adiciona a peça ao lado direito do tabuleiro

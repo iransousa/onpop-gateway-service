@@ -86,12 +86,21 @@ export class GameStateManager {
     }
   }
 
+  getPlayers(gameState: GameState) {
+    return gameState.players.map((player) => ({
+      position: gameState.players.indexOf(player),
+      qtdPdras: gameState.hands[player].length,
+      name: player,
+    }));
+  }
+
   async getPlayerGameState(roomId: string, playerId: string): Promise<any> {
     try {
       const gameState = await this.getGameState(roomId);
+      const players = this.getPlayers(gameState);
       return {
         roomId: gameState.roomId,
-        players: gameState.players,
+        players,
         hands: gameState.hands[playerId] || [],
         board: gameState.board,
         currentTurn: gameState.players[gameState.turnIndex],
