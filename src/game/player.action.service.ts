@@ -176,11 +176,16 @@ export class PlayerActionService {
       // Notify players
       this.notificationService.notifyPlayersOfPass(gameState, playerId);
 
-      // Save the updated game state
-      await this.gameStateManager.setGameState(roomId, gameState);
+
+      const lastGameState = await this.gameStateManager.setGameState(
+        roomId,
+        gameState,
+      );
+
+      this.notificationService.notifyPlayersOfGameUpdate(lastGameState);
 
       // If the next player is a bot, have them play
-      const nextPlayerId = gameState.players[gameState.turnIndex];
+      const nextPlayerId = lastGameState.players[gameState.turnIndex];
       if (await this.botManager.isBot(nextPlayerId)) {
         await this.botManager.playBotTurn(gameState, nextPlayerId);
       }
