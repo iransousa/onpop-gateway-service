@@ -55,6 +55,7 @@ export class NotificationService {
       const message = {
         roomId: gameState.roomId,
         playerWhoMoved: playerId,
+        primeiraPedraDoBoard: gameState.board[0],
         players,
         tilePlayed: tile,
         side: side,
@@ -75,8 +76,10 @@ export class NotificationService {
         roomId: gameState.roomId,
         players,
         board: gameState.board,
+        primeiraPedraDoBoard: gameState.board[0],
         currentTurn: gameState.players[gameState.turnIndex],
         boardEnds: gameState.boardEnds,
+        drawPileCount: gameState.drawPile.length,
         hands: gameState.hands[playerId] || [],
       };
 
@@ -96,6 +99,7 @@ export class NotificationService {
         nextTurn: gameState.players[gameState.turnIndex],
         betAmount: gameState.betAmount,
         betTotal: gameState.betAmount * gameState.players.length,
+        primeiraPedraDoBoard: gameState.board[0],
         roomId: gameState.roomId,
         playerWhoMoved: playerId,
         board: gameState.board,
@@ -169,10 +173,12 @@ export class NotificationService {
       roomId: gameState.roomId,
       players,
       hands: gameState.hands[playerId] || [],
+      primeiraPedraDoBoard: gameState.board[0],
       board: gameState.board,
       currentTurn: gameState.players[gameState.turnIndex],
       boardEnds: gameState.boardEnds,
       betAmount: gameState.betAmount,
+      drawPileCount: gameState.drawPile.length,
       betTotal: gameState.betAmount * gameState.players.length,
     };
 
