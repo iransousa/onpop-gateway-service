@@ -107,6 +107,8 @@ export class GameStateManager {
         boardEnds: gameState.boardEnds,
         betAmount: gameState.betAmount,
         betTotal: gameState.betAmount * gameState.players.length,
+        primeiraPedraDoBoard: gameState.board[0],
+        drawPileCount: gameState.drawPile.length,
       };
     } catch (error) {
       throw new GameError('CACHE_ERROR', 'Error accessing the cache');
