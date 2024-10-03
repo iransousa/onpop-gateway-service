@@ -176,7 +176,6 @@ export class PlayerActionService {
       // Notify players
       this.notificationService.notifyPlayersOfPass(gameState, playerId);
 
-
       const lastGameState = await this.gameStateManager.setGameState(
         roomId,
         gameState,
@@ -213,6 +212,13 @@ export class PlayerActionService {
     gameState.hands[playerId] = gameState.hands[playerId].filter(
       (t) => !(t.left === tile.left && t.right === tile.right),
     );
+
+    this.logger.debug(
+      `Tile removed from hand - ${gameState.hands[playerId]} - ${tile.left} - ${tile.right} - ${playerId}`,
+    );
+
+    tile.timestamp = Date.now();
+    tile.username = playerId;
 
     // Se a jogada é no lado esquerdo
     if (side === 'left') {
