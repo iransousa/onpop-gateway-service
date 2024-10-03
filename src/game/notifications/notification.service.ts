@@ -56,6 +56,7 @@ export class NotificationService {
         roomId: gameState.roomId,
         playerWhoMoved: playerId,
         primeiraPedraDoBoard: gameState.board[0],
+        drawPileCount: gameState.drawPile.length,
         players,
         tilePlayed: tile,
         side: side,
@@ -105,6 +106,7 @@ export class NotificationService {
         board: gameState.board,
         boardEnds: gameState.boardEnds,
         hands: gameState.hands[player],
+        drawPileCount: gameState.drawPile.length,
         currentTurn: gameState.players[gameState.turnIndex],
         players,
       });
@@ -140,6 +142,7 @@ export class NotificationService {
         scores,
         players,
         finalBoard: gameState.board,
+        drawPileCount: gameState.drawPile.length,
         yourFinalHandScore: scores[playerId],
       });
     });
