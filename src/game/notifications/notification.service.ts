@@ -66,7 +66,8 @@ export class NotificationService {
         currentTurn: gameState.players[gameState.turnIndex],
       };
 
-      this.gatewayService.notifyPlayer(player, 'tile_played', message);
+      // this.gatewayService.notifyPlayer(player, 'tile_played', message);
+      this.gatewayService.notifyPlayer(player, 'game_state_update', message);
     });
   }
 
@@ -95,7 +96,8 @@ export class NotificationService {
   notifyPlayersOfPass(gameState: GameState, playerId: string) {
     const players = this.getPlayers(gameState);
     gameState.players.forEach((player) => {
-      this.gatewayService.notifyPlayer(player, 'player_passed', {
+      // this.gatewayService.notifyPlayer(player, 'player_passed', {
+      this.gatewayService.notifyPlayer(player, 'game_state_update', {
         playerId,
         nextTurn: gameState.players[gameState.turnIndex],
         betAmount: gameState.betAmount,
