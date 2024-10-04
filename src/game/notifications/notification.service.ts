@@ -127,6 +127,7 @@ export class NotificationService {
         this.gatewayService.notifyPlayer(player, 'player_drew_tile', {
           playerId,
         });
+        this.sendGameStateToPlayer(gameState, playerId);
       }
     });
   }
