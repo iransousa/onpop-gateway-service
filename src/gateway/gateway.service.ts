@@ -255,14 +255,20 @@ export class GatewayService
   }
 
   @SubscribeMessage('join_matchmaking')
-  async handleJoinMatchmaking(client: Socket, data: { betAmount: number }) {
+  async handleJoinMatchmaking(
+    client: Socket,
+    data: { betAmount: number; minPlayers: number },
+  ) {
     const playerId = client.data.user.id;
-    this.logger.log(`Player ${playerId} joined matchmaking`);
+    this.logger.log(
+      `Player ${playerId} joined matchmaking with bet ${data.betAmount}`,
+    );
     try {
       await this.matchmakingService.addPlayerToQueue(
         playerId,
         data.betAmount,
         500,
+        data.minPlayers,
       );
       return {
         message: 'Player added to matchmaking queue',

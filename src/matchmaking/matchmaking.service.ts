@@ -20,6 +20,7 @@ export class MatchmakingService {
     playerId: string,
     betAmount: number,
     delay: number = 500,
+    minPlayers: number = 2,
   ) {
     if (this.activePlayers.has(playerId)) {
       this.logger.error(`Player ${playerId} is already in matchmaking`);
@@ -33,6 +34,7 @@ export class MatchmakingService {
         {
           playerId,
           betAmount,
+          minPlayers,
         },
         {
           delay: delay,

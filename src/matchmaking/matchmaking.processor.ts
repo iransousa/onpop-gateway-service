@@ -8,6 +8,7 @@ import { AppLogger } from '../shared/logger/logger.service';
 interface Player {
   playerId: string;
   betAmount: number;
+  minPlayers: number;
 }
 
 @Injectable()
@@ -27,7 +28,7 @@ export class MatchmakingProcessor extends WorkerHost {
   }
 
   async process(job: Job) {
-    const { playerId, betAmount } = job.data;
+    const { playerId, betAmount, minPlayers } = job.data;
 
     if (job.name === 'handle-matchmaking') {
       this.logger.log(
@@ -35,7 +36,7 @@ export class MatchmakingProcessor extends WorkerHost {
       );
 
       try {
-        const player: Player = { playerId, betAmount };
+        const player: Player = { playerId, betAmount, minPlayers };
         this.waitingPlayers.push(player);
         this.logger.log('Current waiting players:', this.waitingPlayers);
 
@@ -115,24 +116,46 @@ export class MatchmakingProcessor extends WorkerHost {
     for (const betAmount in betGroups) {
       const players = betGroups[betAmount];
 
-      // Verifica se há exatamente 4 jogadores
-      if (players.length === 4) {
-        this.logger.log(`Found 4 players for bet amount ${betAmount}`);
+      // Agrupar jogadores pelo minPlayers
+      const minPlayersGroups = this.groupByMinPlayers(players);
 
-        // Limpa qualquer timeout existente para esta partida
-        if (this.matchmakingTimeout) {
-          clearTimeout(this.matchmakingTimeout);
+      for (const minPlayers in minPlayersGroups) {
+        const group = minPlayersGroups[minPlayers];
+
+        // Verifica se há jogadores suficientes de acordo com o minPlayers
+        if (group.length >= Number(minPlayers)) {
+          this.logger.log(
+            `Found ${group.length} players for bet amount ${betAmount} with minPlayers ${minPlayers}`,
+          );
+
+          // Limpa qualquer timeout existente para esta partida
+          if (this.matchmakingTimeout) {
+            clearTimeout(this.matchmakingTimeout);
+          }
+
+          // Verificar se deve iniciar com 2, 3 ou 4 jogadores
+          const matchedPlayers = group.splice(0, Math.min(group.length, 4)); // Pega o mínimo de jogadores até 4
+
+          await this.createMatch(matchedPlayers);
+        } else {
+          this.logger.log(
+            `Not enough players for bet amount ${betAmount} with minPlayers ${minPlayers}, waiting...`,
+          );
         }
-
-        // Cria a partida imediatamente para os 4 jogadores
-        const matchedPlayers = players.splice(0, 4); // Remove os 4 jogadores da fila
-        await this.createMatch(matchedPlayers);
-      } else {
-        this.logger.log(
-          `Not enough players for bet amount ${betAmount}, waiting...`,
-        );
       }
     }
+  }
+
+  private groupByMinPlayers(players: Player[]): { [key: number]: Player[] } {
+    return players.reduce(
+      (groups, player) => {
+        const group = groups[player.minPlayers] || [];
+        group.push(player);
+        groups[player.minPlayers] = group;
+        return groups;
+      },
+      {} as { [key: number]: Player[] },
+    );
   }
 
   private async askPlayersToStart(players: Player[]) {
