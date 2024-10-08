@@ -318,6 +318,48 @@ export class GatewayService
     }
   }
 
+  @SubscribeMessage('send_message')
+  async handleSendMessage(
+    client: Socket,
+    data: { roomId: string; message: string },
+  ) {
+    const playerId = client.data.user.id;
+    const roomId = data.roomId;
+    const message = data.message;
+
+    // Verifique se o jogador está na sala
+    const isPlayerInRoom = client.rooms.has(roomId);
+    if (!isPlayerInRoom) {
+      return { error: 'Player not in the specified room' };
+    }
+
+    // Salvar a mensagem de chat no Redis
+    await this.gameStateManager.addChatMessage(roomId, playerId, message);
+
+    // Criar o objeto de mensagem
+    const chatMessage = {
+      playerId,
+      message,
+      timestamp: new Date(),
+    };
+
+    // Enviar a mensagem para todos na sala
+    this.notifyRoom(roomId, 'receive_message', chatMessage);
+
+    return { success: true };
+  }
+
+  @SubscribeMessage('get_chat_history')
+  async handleGetChatHistory(client: Socket, data: { roomId: string }) {
+    const roomId = data.roomId;
+
+    // Recuperar o histórico de mensagens do Redis
+    const chatHistory = await this.gameStateManager.getChatMessages(roomId);
+
+    // Enviar o histórico de mensagens de volta ao cliente
+    return { chatHistory };
+  }
+
   @SubscribeMessage('draw_tile')
   async handleDrawTile(client: Socket) {
     const playerId = client.data.user.id;

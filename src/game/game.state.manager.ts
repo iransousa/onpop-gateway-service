@@ -153,4 +153,22 @@ export class GameStateManager {
       await this.redisClient.del(lockKey);
     }
   }
+
+  // Método para adicionar uma mensagem de chat no Redis
+  async addChatMessage(roomId: string, playerId: string, message: string) {
+    const chatMessage = {
+      playerId,
+      message,
+      timestamp: new Date().toISOString(),
+    };
+
+    // Salva a mensagem no Redis, adicionando à lista de mensagens da sala
+    await this.redisClient.rPush(`chat:${roomId}`, JSON.stringify(chatMessage));
+  }
+
+  // Método para recuperar as mensagens de chat de uma sala
+  async getChatMessages(roomId: string): Promise<any[]> {
+    const messages = await this.redisClient.lRange(`chat:${roomId}`, 0, -1);
+    return messages.map((message) => JSON.parse(message));
+  }
 }

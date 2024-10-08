@@ -76,30 +76,61 @@ export class MatchmakingProcessor extends WorkerHost {
     });
   }
 
+  // private async checkForMatch() {
+  //   this.logger.log('Checking for match...');
+  //   const betGroups = this.groupByBetAmount(this.waitingPlayers);
+  //   this.logger.log('Grouped players:', betGroups);
+  //
+  //   for (const betAmount in betGroups) {
+  //     const players = betGroups[betAmount];
+  //
+  //     if (players.length >= 2) {
+  //       if (this.matchmakingTimeout) {
+  //         clearTimeout(this.matchmakingTimeout);
+  //       }
+  //
+  //       this.matchmakingTimeout = setTimeout(async () => {
+  //         if (players.length === 4) {
+  //           // if (players.length === 4) {
+  //           const matchedPlayers = players.splice(0, 4);
+  //           await this.createMatch(matchedPlayers);
+  //         } else {
+  //           // await this.askPlayersToStart(
+  //           //   players.slice(0, players.length >= 3 ? 3 : 2),
+  //           // );
+  //         }
+  //       }, 10000); // 10 segundos de espera
+  //     }
+  //   }
+  // }
+
   private async checkForMatch() {
     this.logger.log('Checking for match...');
-    const betGroups = this.groupByBetAmount(this.waitingPlayers);
-    this.logger.log('Grouped players:', betGroups);
 
+    // Agrupar jogadores por valor de aposta
+    const betGroups = this.groupByBetAmount(this.waitingPlayers);
+    this.logger.log('Grouped players by bet amount:', betGroups);
+
+    // Percorrer cada grupo de apostas
     for (const betAmount in betGroups) {
       const players = betGroups[betAmount];
 
-      if (players.length >= 2) {
+      // Verifica se há exatamente 4 jogadores
+      if (players.length === 4) {
+        this.logger.log(`Found 4 players for bet amount ${betAmount}`);
+
+        // Limpa qualquer timeout existente para esta partida
         if (this.matchmakingTimeout) {
           clearTimeout(this.matchmakingTimeout);
         }
 
-        this.matchmakingTimeout = setTimeout(async () => {
-          if (players.length > 1) {
-            // if (players.length === 4) {
-            const matchedPlayers = players.splice(0, 4);
-            await this.createMatch(matchedPlayers);
-          } else {
-            // await this.askPlayersToStart(
-            //   players.slice(0, players.length >= 3 ? 3 : 2),
-            // );
-          }
-        }, 10000); // 10 segundos de espera
+        // Cria a partida imediatamente para os 4 jogadores
+        const matchedPlayers = players.splice(0, 4); // Remove os 4 jogadores da fila
+        await this.createMatch(matchedPlayers);
+      } else {
+        this.logger.log(
+          `Not enough players for bet amount ${betAmount}, waiting...`,
+        );
       }
     }
   }
