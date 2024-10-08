@@ -8,6 +8,7 @@ import { NotificationService } from './notifications/notification.service';
 import { GameState } from './interfaces/game-state.interface';
 import { TimerService } from './time.service';
 import { AppLogger } from '../shared/logger/logger.service';
+import { GameError } from './errors/game-error';
 
 const TURN_TIMEOUT = 30000; // 30 seconds
 const TURN_WARNING = 10000; // Warn 10 seconds before timeout
@@ -52,6 +53,34 @@ export class GameService {
     return gameState;
   }
 
+  async handlePlayerLeaveGame(roomId: string, playerId: string) {
+    const gameState = await this.gameStateManager.getGameState(roomId);
+    if (!gameState) return;
+
+    this.logger.log(`Player ${playerId} leaving game ${roomId}`);
+
+    // Remove the player from the game state
+    gameState.players = gameState.players.filter((id) => id !== playerId);
+
+    // Remove the player's hand from the game state
+    delete gameState.hands[playerId];
+
+    // If only one player remains, end the game
+    if (gameState.players.length === 1) {
+      const winner = gameState.players[0];
+      await this.endGame(roomId, winner);
+      return;
+    }
+
+    // If there are more players, update the game state
+    await this.gameStateManager.setGameState(roomId, gameState);
+
+    // Notify remaining players that the player has left
+    this.notificationService.notifyRoom(roomId, 'player_left', { playerId });
+
+    this.logger.log(`Player ${playerId} successfully left the game`);
+  }
+
   async initializeGameWithBots(
     humanPlayers: string[],
     botCount: number,
@@ -73,7 +102,11 @@ export class GameService {
 
   async handlePlayerDisconnect(roomId: string, playerId: string) {
     const gameState = await this.gameStateManager.getGameState(roomId);
-    if (!gameState || gameState?.disconnectedPlayers) return;
+    if (!gameState) return;
+
+    if (!gameState.disconnectedPlayers) {
+      gameState.disconnectedPlayers = new Set<string>(); // Initialize as Set if undefined
+    }
 
     gameState.disconnectedPlayers.add(playerId);
 
@@ -101,7 +134,7 @@ export class GameService {
 
   async handlePlayerReconnect(roomId: string, playerId: string) {
     const gameState = await this.gameStateManager.getGameState(roomId);
-    if (!gameState) return;
+    if (!gameState || !gameState.disconnectedPlayers) return;
 
     if (gameState.disconnectedPlayers.has(playerId)) {
       gameState.disconnectedPlayers.delete(playerId);

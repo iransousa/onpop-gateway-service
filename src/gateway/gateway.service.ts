@@ -87,7 +87,9 @@ export class GatewayService
       );
       if (roomId) {
         await this.handleReconnection(client, decoded.id, roomId);
+        return;
       }
+      client.join(roomId);
     } catch (error) {
       this.logger.error('Authentication failed:', error.message);
       client.disconnect();
@@ -330,13 +332,16 @@ export class GatewayService
     data: { roomId: string; message: string },
   ) {
     const playerId = client.data.user.id;
-    const roomId = data.roomId;
     const message = data.message;
-
+    const roomId = await this.gameStateManager.getRoomIdByPlayerId(playerId);
     // Verifique se o jogador está na sala
-    const isPlayerInRoom = client.rooms.has(roomId);
-    if (!isPlayerInRoom) {
-      return { error: 'Player not in the specified room' };
+
+    this.logger.log(
+      `Player ${client.data.user.id} sent message: ${data.message} roomId: ${roomId}`,
+    );
+
+    if (!roomId) {
+      return { error: 'Player not in a game' };
     }
 
     // Salvar a mensagem de chat no Redis
@@ -349,21 +354,48 @@ export class GatewayService
       timestamp: new Date(),
     };
 
+    this.logger.log(
+      `Player ${client.data.user.id} sent message: ${data.message}`,
+    );
+
     // Enviar a mensagem para todos na sala
     this.notifyRoom(roomId, 'receive_message', chatMessage);
 
     return { success: true };
   }
 
+  @SubscribeMessage('leave_game')
+  async handleLeaveGame(client: Socket) {
+    const playerId = client.data.user.id;
+    const roomId = await this.gameStateManager.getRoomIdByPlayerId(playerId);
+
+    if (!roomId) {
+      return { error: 'Player not in a game' };
+    }
+
+    // Handle player leaving the game
+    await this.gameService.handlePlayerLeaveGame(roomId, playerId);
+
+    // Remove the player from the Socket.IO room
+    client.leave(roomId);
+
+    return { success: true, message: `Player ${playerId} left the game` };
+  }
+
   @SubscribeMessage('get_chat_history')
   async handleGetChatHistory(client: Socket, data: { roomId: string }) {
-    const roomId = data.roomId;
+    const playerId = client.data.user.id;
+    const roomId = await this.gameStateManager.getRoomIdByPlayerId(playerId);
+
+    if (!roomId) {
+      return { error: 'Player not in a game' };
+    }
 
     // Recuperar o histórico de mensagens do Redis
     const chatHistory = await this.gameStateManager.getChatMessages(roomId);
 
     // Enviar o histórico de mensagens de volta ao cliente
-    return { chatHistory };
+    client.emit('chat_history', { roomId, chatHistory });
   }
 
   @SubscribeMessage('draw_tile')

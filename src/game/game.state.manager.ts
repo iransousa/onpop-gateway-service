@@ -33,7 +33,7 @@ export class GameStateManager {
       lastAction: { playerId: '', action: 'play' },
       boardEnds: { left: -1, right: -1 },
       turnStartTime: Date.now(),
-      disconnectedPlayers: new Set(),
+      disconnectedPlayers: new Set<string>(),
       moveHistory: [],
       isFirstPlay: true,
       drawPileCount: 0,
@@ -69,7 +69,10 @@ export class GameStateManager {
   }
 
   async setGameState(roomId: string, updatedState: GameState) {
-    const gameState = JSON.stringify(updatedState);
+    const gameState = JSON.stringify({
+      ...updatedState,
+      disconnectedPlayers: Array.from(updatedState.disconnectedPlayers),
+    });
     await this.redisClient.set(`game:${roomId}`, gameState);
     return updatedState;
   }
@@ -80,8 +83,26 @@ export class GameStateManager {
       if (!gameState) {
         throw new GameError('GAME_NOT_FOUND', 'Game not found');
       }
-      return JSON.parse(gameState);
+      const parsedState = JSON.parse(gameState) as GameState;
+      // Ensure disconnectedPlayers is a Set
+      if (Array.isArray(parsedState.disconnectedPlayers)) {
+        // If it's an array, convert to Set
+        parsedState.disconnectedPlayers = new Set(
+          parsedState.disconnectedPlayers,
+        );
+      } else if (
+        parsedState.disconnectedPlayers &&
+        typeof parsedState.disconnectedPlayers === 'object'
+      ) {
+        // If it's an object (possibly {}), treat it as empty and convert to Set
+        parsedState.disconnectedPlayers = new Set();
+      } else if (!parsedState.disconnectedPlayers) {
+        // If disconnectedPlayers is null or undefined, initialize as an empty Set
+        parsedState.disconnectedPlayers = new Set();
+      }
+      return parsedState;
     } catch (error) {
+      console.log(error);
       throw new GameError('CACHE_ERROR', 'Error accessing the cache');
     }
   }

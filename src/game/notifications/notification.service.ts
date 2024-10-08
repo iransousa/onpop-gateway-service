@@ -22,6 +22,10 @@ export class NotificationService {
     }));
   }
 
+  notifyRoom(roomId: string, event: string, message: any) {
+    this.gatewayService.notifyRoom(roomId, event, message);
+  }
+
   notifyPlayersOfGameStart(gameState: GameState) {
     const players = this.getPlayers(gameState);
     gameState.players.forEach((playerId, index) => {
