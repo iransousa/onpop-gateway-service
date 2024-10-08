@@ -34,7 +34,7 @@ export class MatchmakingService {
         {
           playerId,
           betAmount,
-          minPlayers,
+          minPlayers: 4,
         },
         {
           delay: delay,
