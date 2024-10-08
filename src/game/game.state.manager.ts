@@ -79,7 +79,9 @@ export class GameStateManager {
 
   async getGameState(roomId: string): Promise<GameState> {
     try {
-      const gameState = await this.redisClient.get(`game:${roomId}`);
+      const hasGameLabel = roomId.startsWith('game:');
+      const room = hasGameLabel ? roomId : `game:${roomId}`;
+      const gameState = await this.redisClient.get(room);
       if (!gameState) {
         throw new GameError('GAME_NOT_FOUND', 'Game not found');
       }

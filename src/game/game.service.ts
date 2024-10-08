@@ -204,8 +204,8 @@ export class GameService {
     if (!gameState) return;
 
     // Stop timers
-    this.timerService.clearTurnTimer(roomId);
-    this.timerService.clearWarningTimer(roomId);
+    // this.timerService.clearTurnTimer(roomId);
+    // this.timerService.clearWarningTimer(roomId);
 
     // Calculate final scores
     const scores = this.gameLogicService.calculateFinalScores(gameState);

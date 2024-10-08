@@ -383,7 +383,7 @@ export class GatewayService
   }
 
   @SubscribeMessage('get_chat_history')
-  async handleGetChatHistory(client: Socket, data: { roomId: string }) {
+  async handleGetChatHistory(client: Socket) {
     const playerId = client.data.user.id;
     const roomId = await this.gameStateManager.getRoomIdByPlayerId(playerId);
 
