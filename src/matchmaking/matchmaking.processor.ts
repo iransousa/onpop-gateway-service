@@ -73,7 +73,6 @@ export class MatchmakingProcessor extends WorkerHost {
       roomId: gameState.roomId,
       players: gameState.players,
       hands: gameState.hands[playerId],
-      // ... outras informações relevantes ...
     });
   }
 
