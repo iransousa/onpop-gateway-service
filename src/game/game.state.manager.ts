@@ -83,7 +83,7 @@ export class GameStateManager {
       const room = hasGameLabel ? roomId : `game:${roomId}`;
       const gameState = await this.redisClient.get(room);
       if (!gameState) {
-        throw new GameError('GAME_NOT_FOUND', 'Game not found');
+        return;
       }
       const parsedState = JSON.parse(gameState) as GameState;
       // Ensure disconnectedPlayers is a Set
@@ -105,7 +105,7 @@ export class GameStateManager {
       return parsedState;
     } catch (error) {
       console.log(error);
-      throw new GameError('CACHE_ERROR', 'Error accessing the cache');
+      // throw new GameError('CACHE_ERROR', 'Error accessing the cache');
     }
   }
 
