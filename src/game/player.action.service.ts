@@ -91,10 +91,10 @@ export class PlayerActionService {
   }
 
   async drawTile(roomId: string, playerId: string) {
-    const lockAcquired = await this.gameStateManager.acquireLock(roomId);
-    if (!lockAcquired) {
-      throw new GameError('LOCK_NOT_ACQUIRED', 'Could not acquire lock');
-    }
+    // const lockAcquired = await this.gameStateManager.acquireLock(roomId);
+    // if (!lockAcquired) {
+    //   throw new GameError('LOCK_NOT_ACQUIRED', 'Could not acquire lock');
+    // }
     try {
       const gameState = await this.gameStateManager.getGameState(roomId);
 

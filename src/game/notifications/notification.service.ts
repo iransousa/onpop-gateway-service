@@ -17,7 +17,7 @@ export class NotificationService {
   getPlayers(gameState: GameState) {
     return gameState.players.map((player) => ({
       position: gameState.players.indexOf(player),
-      qtdPdras: gameState.hands[player].length,
+      qtdPdras: gameState?.hands?.[player]?.length,
       name: player,
     }));
   }
