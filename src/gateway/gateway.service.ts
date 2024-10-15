@@ -156,7 +156,7 @@ export class GatewayService
       // Configura um timeout
       const timeoutHandle = setTimeout(async () => {
         this.logger.log(`Player ${playerId} did not respond in time`);
-        await this.notifyPlayer(playerId, 'timeout_notification', {
+        this.notifyPlayer(playerId, 'timeout_notification', {
           message: 'You did not respond in time, proceeding without you',
         });
         try {
@@ -360,6 +360,11 @@ export class GatewayService
 
     // Enviar a mensagem para todos na sala
     this.notifyRoom(roomId, 'receive_message', chatMessage);
+
+    const players = await this.gameStateManager.getGameState(roomId);
+    for (const player of players.players) {
+      this.notifyPlayer(player, 'receive_message', chatMessage);
+    }
 
     return { success: true };
   }
