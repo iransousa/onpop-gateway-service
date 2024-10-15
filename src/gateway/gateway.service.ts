@@ -361,10 +361,10 @@ export class GatewayService
     // Enviar a mensagem para todos na sala
     this.notifyRoom(roomId, 'receive_message', chatMessage);
 
-    const players = await this.gameStateManager.getGameState(roomId);
-    for (const player of players.players) {
-      this.notifyPlayer(player, 'receive_message', chatMessage);
-    }
+    // const players = await this.gameStateManager.getGameState(roomId);
+    // for (const player of players.players) {
+    //   this.notifyPlayer(player, 'receive_message', chatMessage);
+    // }
 
     return { success: true };
   }
