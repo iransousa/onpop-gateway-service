@@ -1,7 +1,7 @@
 // game/bot-player.ts
 
-import { GameState } from './interfaces/game-state.interface';
-import { Tile } from './interfaces/tile.interface';
+import { GameState } from '@src/game/interfaces/game-state.interface';
+import { Tile } from '@src/game/interfaces/tile.interface';
 
 export type BotDifficulty = 'easy' | 'medium' | 'hard';
 

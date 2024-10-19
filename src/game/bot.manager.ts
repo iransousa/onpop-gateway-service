@@ -1,9 +1,9 @@
 // game/bot.manager.ts
 
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
-import { BotPlayer, BotDifficulty } from './bot-player';
-import { GameState } from './interfaces/game-state.interface';
-import { PlayerActionService } from './player.action.service';
+import { BotPlayer, BotDifficulty } from '@src/game/bot-player';
+import { GameState } from '@src/game/interfaces/game-state.interface';
+import { PlayerActionService } from '@src/game/player.action.service';
 import { RedisClientType } from 'redis';
 
 @Injectable()

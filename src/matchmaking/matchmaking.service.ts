@@ -2,7 +2,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { AppLogger } from '../shared/logger/logger.service';
+import { AppLogger } from '@src/shared/logger/logger.service';
 
 @Injectable()
 export class MatchmakingService {

@@ -1,8 +1,8 @@
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
-import { GameState } from '../interfaces/game-state.interface';
-import { Tile } from '../interfaces/tile.interface';
-import { GatewayService } from '../../gateway/gateway.service';
-import { AppLogger } from '../../shared/logger/logger.service';
+import { GameState } from '@src/game/interfaces/game-state.interface';
+import { Tile } from '@src/game/interfaces/tile.interface';
+import { GatewayService } from '@src/gateway/gateway.service';
+import { AppLogger } from '@src/shared/logger/logger.service';
 
 @Injectable()
 export class NotificationService {

@@ -9,12 +9,12 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { MatchmakingService } from '../matchmaking/matchmaking.service';
-import { GameService } from '../game/game.service';
-import { GameError } from '../game/errors/game-error';
-import { AppLogger } from '../shared/logger/logger.service';
-import { GameStateManager } from '../game/game.state.manager';
-import { PlayerActionService } from '../game/player.action.service';
+import { MatchmakingService } from '@src/matchmaking/matchmaking.service';
+import { GameService } from '@src/game/game.service';
+import { GameError } from '@src/game/errors/game-error';
+import { AppLogger } from '@src/shared/logger/logger.service';
+import { GameStateManager } from '@src/game/game.state.manager';
+import { PlayerActionService } from '@src/game/player.action.service';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { ConfigService } from '@nestjs/config';
 import { Redis } from 'ioredis';

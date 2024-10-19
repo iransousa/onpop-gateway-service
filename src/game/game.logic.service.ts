@@ -1,20 +1,30 @@
 // game/game-logic.service.ts
 
 import { Injectable } from '@nestjs/common';
-import { GameState } from './interfaces/game-state.interface';
-import { Tile } from './interfaces/tile.interface';
-import { calculateHandScore } from './utils/score.util';
-import { GameError } from './errors/game-error';
+import { GameState } from '@src/game/interfaces/game-state.interface';
+import { Tile } from '@src/game/interfaces/tile.interface';
+import { calculateHandScore } from '@src/game/utils/score.util';
+import { GameError } from '@src/game/errors/game-error';
+import { AppLogger } from '@src/shared/logger/logger.service';
 
 @Injectable()
 export class GameLogicService {
+  constructor(private readonly logger: AppLogger) {
+    this.logger.setContext(GameLogicService.name);
+  }
+
   isValidMove(
     gameState: GameState,
     tile: Tile,
-    side: 'left' | 'right',
+    side: 'left' | 'right' = 'left',
   ): boolean {
+    // this.logger.debug(
+    //   `Checking if move is valid for player ${gameState.players[gameState.turnIndex]} | Tile(${JSON.stringify(tile)}) | Side(${side}) | Board length: ${gameState.board.length} | Board ends: ${JSON.stringify(gameState.boardEnds)}`,
+    // );
+
     if (gameState.board.length === 0) {
-      return true;
+      // Verifica se a primeira jogada é válida de acordo com as regras
+      return this.isValidFirstMove(gameState, tile);
     }
 
     const { left: boardLeft, right: boardRight } = gameState.boardEnds;
@@ -36,12 +46,47 @@ export class GameLogicService {
 
   canPlayTile(gameState: GameState, playerId: string): boolean {
     if (gameState.isFirstPlay) {
-      if (gameState.players.length === 4) {
-        return gameState.hands[playerId].some(
-          (tile) => tile.left === 6 && tile.right === 6,
-        );
+      const numberOfPlayers = gameState.players.length;
+      const playerHand = gameState.hands[playerId];
+
+      if (numberOfPlayers === 4) {
+        // Para 4 jogadores, apenas o jogador com [6:6] pode jogar
+        return playerHand.some((tile) => tile.left === 6 && tile.right === 6);
+      } else if (numberOfPlayers === 2 || numberOfPlayers === 3) {
+        // Para 2 ou 3 jogadores, determinar a maior dupla
+        let highestDouble = -1;
+        let playerWithHighestDouble: string | null = null;
+
+        for (let pip = 6; pip >= 0; pip--) {
+          for (const id of gameState.players) {
+            if (
+              gameState.hands[id].some((t) => t.left === pip && t.right === pip)
+            ) {
+              highestDouble = pip;
+              playerWithHighestDouble = id;
+              break;
+            }
+          }
+          if (highestDouble !== -1) {
+            break;
+          }
+        }
+
+        if (highestDouble === -1) {
+          // Nenhum jogador tem dupla, qualquer jogador pode jogar
+          return true;
+        } else {
+          // Apenas o jogador com a maior dupla pode jogar
+          if (playerId === playerWithHighestDouble) {
+            return true;
+          } else {
+            return false;
+          }
+        }
+      } else {
+        // Para outros números de jogadores, permitir qualquer jogador
+        return true;
       }
-      return true;
     }
 
     const { left, right } = gameState.boardEnds;
@@ -81,6 +126,7 @@ export class GameLogicService {
   }
 
   checkWinner(gameState: GameState): string | null {
+    // this.logger.debug('Checking winner by hand size ');
     for (const playerId of gameState.players) {
       if (gameState.hands[playerId].length === 0) {
         return playerId;
@@ -110,5 +156,46 @@ export class GameLogicService {
       scores[playerId] = calculateHandScore(gameState.hands[playerId]);
     });
     return scores;
+  }
+
+  private isValidFirstMove(gameState: GameState, tile: Tile): boolean {
+    const numberOfPlayers = gameState.players.length;
+
+    if (numberOfPlayers === 4) {
+      // Para 4 jogadores, a primeira pedra deve ser [6:6]
+      return tile.left === 6 && tile.right === 6;
+    } else if (numberOfPlayers === 2 || numberOfPlayers === 3) {
+      // Para 2 ou 3 jogadores, determinar a maior dupla
+      let highestDouble = -1;
+      let playerWithHighestDouble: string | null = null;
+
+      for (let pip = 6; pip >= 0; pip--) {
+        for (const playerId of gameState.players) {
+          if (
+            gameState.hands[playerId].some(
+              (t) => t.left === pip && t.right === pip,
+            )
+          ) {
+            highestDouble = pip;
+            playerWithHighestDouble = playerId;
+            break;
+          }
+        }
+        if (highestDouble !== -1) {
+          break;
+        }
+      }
+
+      if (highestDouble === -1) {
+        // Nenhum jogador tem dupla, qualquer pedra pode ser jogada
+        return true;
+      } else {
+        // O jogador deve jogar a maior dupla encontrada
+        return tile.left === highestDouble && tile.right === highestDouble;
+      }
+    } else {
+      // Para outros números de jogadores, permitir qualquer jogada
+      return true;
+    }
   }
 }

@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { AuthModule } from './auth/auth.module';
-import { GatewayModule } from './gateway/gateway.module';
-import { MatchmakingModule } from './matchmaking/matchmaking.module';
+import { AppController } from '@src/app.controller';
+import { AppService } from '@src/app.service';
+import { AuthModule } from '@src/auth/auth.module';
+import { GatewayModule } from '@src/gateway/gateway.module';
+import { MatchmakingModule } from '@src/matchmaking/matchmaking.module';
 import { ConfigModule } from '@nestjs/config';
-import { GameModule } from './game/game.module';
-import { SharedModule } from './shared/shared.module';
+import { GameModule } from '@src/game/game.module';
+import { SharedModule } from '@src/shared/shared.module';
 
 @Module({
   imports: [

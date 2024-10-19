@@ -1,14 +1,13 @@
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
-import { BotManager } from './bot.manager';
-import { GatewayService } from '../gateway/gateway.service';
-import { GameStateManager } from './game.state.manager';
-import { PlayerActionService } from './player.action.service';
-import { GameLogicService } from './game.logic.service';
-import { NotificationService } from './notifications/notification.service';
-import { GameState } from './interfaces/game-state.interface';
-import { TimerService } from './time.service';
-import { AppLogger } from '../shared/logger/logger.service';
-import { GameError } from './errors/game-error';
+import { BotManager } from '@src/game/bot.manager';
+import { GatewayService } from '@src/gateway/gateway.service';
+import { GameStateManager } from '@src/game/game.state.manager';
+import { PlayerActionService } from '@src/game/player.action.service';
+import { GameLogicService } from '@src/game/game.logic.service';
+import { NotificationService } from '@src/game/notifications/notification.service';
+import { GameState } from '@src/game/interfaces/game-state.interface';
+import { TimerService } from '@src/game/time.service';
+import { AppLogger } from '@src/shared/logger/logger.service';
 
 const TURN_TIMEOUT = 30000; // 30 seconds
 const TURN_WARNING = 10000; // Warn 10 seconds before timeout
@@ -23,6 +22,7 @@ export class GameService {
     private readonly botManager: BotManager,
     private readonly notificationService: NotificationService,
     @Inject(forwardRef(() => GatewayService))
+    @Inject(forwardRef(() => TimerService))
     private readonly timerService: TimerService,
   ) {
     this.logger.setContext(GameService.name);
@@ -39,16 +39,15 @@ export class GameService {
 
     // Determine first player
     gameState.turnIndex = this.findFirstPlayer(gameState);
-    this.logger.log(`First player: ${gameState.players[gameState.turnIndex]}`);
+    this.logger.log(
+      `First player: ${gameState.players[gameState.turnIndex]} - ${JSON.stringify(gameState.hands[gameState.players[gameState.turnIndex]])}`,
+    );
 
     // Notify players
     this.notificationService.notifyPlayersOfGameStart(gameState);
     this.logger.log('Game started');
 
     await this.gameStateManager.setGameState(gameState.roomId, gameState);
-
-    // Start turn timer if applicable
-    // ...
 
     return gameState;
   }
@@ -225,20 +224,58 @@ export class GameService {
   }
 
   private findFirstPlayer(gameState: GameState): number {
-    if (gameState.players.length === 4) {
-      // For 4 players, find who has the 6:6 tile
-      for (let i = 0; i < gameState.players.length; i++) {
+    const numberOfPlayers = gameState.players.length;
+    this.logger.debug(`Finding first player for ${numberOfPlayers} players`);
+    if (numberOfPlayers === 4) {
+      // Para 4 jogadores, encontra quem tem a pedra [6:6]
+      for (let i = 0; i < numberOfPlayers; i++) {
         const playerId = gameState.players[i];
         if (
           gameState.hands[playerId].some(
             (tile) => tile.left === 6 && tile.right === 6,
           )
         ) {
+          // Jogador com [6:6] inicia
+          this.logger.debug(
+            `First player for ${numberOfPlayers} players is ${i}`,
+          );
           return i;
         }
       }
+      // Não é necessário escolher aleatoriamente, pois alguém sempre terá a [6:6]
+      // Se o código chegar aqui, é porque houve um erro na distribuição das pedras
+      throw new Error(
+        'Nenhum jogador possui a pedra [6:6], o que é impossível em um jogo de 4 jogadores.',
+      );
+    } else if (numberOfPlayers === 2 || numberOfPlayers === 3) {
+      // Para 2 ou 3 jogadores, encontra quem tem a maior dupla
+      for (let pip = 6; pip >= 0; pip--) {
+        for (let i = 0; i < numberOfPlayers; i++) {
+          const playerId = gameState.players[i];
+          if (
+            gameState.hands[playerId].some(
+              (tile) => tile.left === pip && tile.right === pip,
+            )
+          ) {
+            // Jogador com a maior dupla inicia
+            this.logger.debug(
+              `First player for ${numberOfPlayers} players is ${i}`,
+            );
+            return i;
+          }
+        }
+      }
+      this.logger.debug(
+        `No one has a double, choosing randomly for ${numberOfPlayers} players`,
+      );
+      // Se ninguém tem dupla, escolhe aleatoriamente
+      return Math.floor(Math.random() * numberOfPlayers);
+    } else {
+      this.logger.debug(
+        `No one has a double, choosing randomly for ${numberOfPlayers} players`,
+      );
+      // Para outros números de jogadores, escolhe aleatoriamente
+      return Math.floor(Math.random() * numberOfPlayers);
     }
-    // For 2 or 3 players, or if no one has 6:6, choose randomly
-    return Math.floor(Math.random() * gameState.players.length);
   }
 }

@@ -1,9 +1,9 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { GatewayService } from 'src/gateway/gateway.service';
-import { GameService } from 'src/game/game.service';
-import { AppLogger } from '../shared/logger/logger.service';
+import { GatewayService } from '@src/gateway/gateway.service';
+import { GameService } from '@src/game/game.service';
+import { AppLogger } from '@src/shared/logger/logger.service';
 
 interface Player {
   playerId: string;

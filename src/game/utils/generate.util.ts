@@ -1,4 +1,4 @@
-import { Tile } from '../interfaces/tile.interface';
+import { Tile } from '@src/game/interfaces/tile.interface';
 
 export function generateAllTiles(): Tile[] {
   const tiles: Tile[] = [];

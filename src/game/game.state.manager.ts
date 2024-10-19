@@ -1,18 +1,25 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { GameState } from './interfaces/game-state.interface';
-import { generateAllTiles, generateRoomId } from './utils/generate.util';
-import { shuffleArray } from './utils/shuffle.util';
-import { GameError } from './errors/game-error';
+import { GameState } from '@src/game/interfaces/game-state.interface';
+import {
+  generateAllTiles,
+  generateRoomId,
+} from '@src/game/utils/generate.util';
+import { shuffleArray } from '@src/game/utils/shuffle.util';
+import { GameError } from '@src/game/errors/game-error';
 import { RedisClientType } from 'redis';
 import { v4 as uuidv4 } from 'uuid';
+import { AppLogger } from '@src/shared/logger/logger.service';
 
 @Injectable()
 export class GameStateManager {
-  private readonly LOCK_VALUE = uuidv4();
+  private static readonly LOCK_VALUE = uuidv4();
 
   constructor(
+    private readonly logger: AppLogger,
     @Inject('REDIS_CLIENT') private redisClient: RedisClientType<any, any>,
-  ) {}
+  ) {
+    this.logger.setContext(GameStateManager.name);
+  }
 
   async createGameState(
     players: string[],
@@ -21,6 +28,10 @@ export class GameStateManager {
     const roomId = generateRoomId();
     const allTiles = generateAllTiles();
     shuffleArray(allTiles);
+    this.logger.debug(`Creating game room ${roomId} with players ${players}`);
+    this.logger.debug(
+      `All tiles count ${allTiles.length} | ${JSON.stringify(allTiles)}`,
+    );
 
     const gameState: GameState = {
       roomId,
@@ -51,10 +62,16 @@ export class GameStateManager {
     // Distribute 7 tiles to each player
     players.forEach((playerId) => {
       gameState.hands[playerId] = allTiles.splice(0, 7);
+      this.logger.debug(
+        `Player ${playerId} hand total ${gameState.hands[playerId].length} | ${JSON.stringify(gameState.hands[playerId])}`,
+      );
     });
 
     if (players.length < 4) {
       gameState.drawPile = allTiles;
+      this.logger.debug(
+        `Draw tiles total ${allTiles.length} | ${JSON.stringify(allTiles)}`,
+      );
     }
 
     // Mapear cada playerId para o roomId no Redis
@@ -162,17 +179,21 @@ export class GameStateManager {
 
   async acquireLock(key: string, ttl: number = 5000): Promise<boolean> {
     const lockKey = `lock:${key}`;
-    const result = await this.redisClient.set(lockKey, this.LOCK_VALUE, {
-      NX: true,
-      PX: ttl,
-    });
+    const result = await this.redisClient.set(
+      lockKey,
+      GameStateManager.LOCK_VALUE,
+      {
+        NX: true,
+        PX: ttl,
+      },
+    );
     return result === 'OK';
   }
 
   async releaseLock(key: string): Promise<void> {
     const lockKey = `lock:${key}`;
     const lockValue = await this.redisClient.get(lockKey);
-    if (lockValue === this.LOCK_VALUE) {
+    if (lockValue === GameStateManager.LOCK_VALUE) {
       await this.redisClient.del(lockKey);
     }
   }

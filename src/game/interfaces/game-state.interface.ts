@@ -1,5 +1,5 @@
-import { Tile } from './tile.interface';
-import { MoveHistory } from './move-history.interface';
+import { Tile } from '@src/game/interfaces/tile.interface';
+import { MoveHistory } from '@src/game/interfaces/move-history.interface';
 
 export interface BoardEnds {
   left: number;

@@ -1,11 +1,11 @@
 import { forwardRef, Module } from '@nestjs/common';
-import { GatewayService } from './gateway.service';
-import { GameModule } from 'src/game/game.module';
-import { AuthModule } from 'src/auth/auth.module';
-import { MatchmakingModule } from 'src/matchmaking/matchmaking.module';
+import { GatewayService } from '@src/gateway/gateway.service';
+import { GameModule } from '@src/game/game.module';
+import { AuthModule } from '@src/auth/auth.module';
+import { MatchmakingModule } from '@src/matchmaking/matchmaking.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { SharedModule } from '../shared/shared.module';
+import { SharedModule } from '@src/shared/shared.module';
 
 @Module({
   imports: [

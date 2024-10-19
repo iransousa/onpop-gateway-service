@@ -1,7 +1,7 @@
 import { Module, Global } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { createClient } from 'redis';
-import { AppLogger } from './logger/logger.service';
+import { AppLogger } from '@src/shared/logger/logger.service';
 
 @Global()
 @Module({

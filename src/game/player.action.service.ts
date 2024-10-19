@@ -1,13 +1,13 @@
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
-import { BotManager } from './bot.manager';
-import { AppLogger } from '../shared/logger/logger.service';
-import { Tile } from './interfaces/tile.interface';
-import { GameError } from './errors/game-error';
-import { GameState } from './interfaces/game-state.interface';
-import { GameService } from './game.service';
-import { GameStateManager } from './game.state.manager';
-import { GameLogicService } from './game.logic.service';
-import { NotificationService } from './notifications/notification.service';
+import { BotManager } from '@src/game/bot.manager';
+import { AppLogger } from '@src/shared/logger/logger.service';
+import { Tile } from '@src/game/interfaces/tile.interface';
+import { GameError } from '@src/game/errors/game-error';
+import { GameState } from '@src/game/interfaces/game-state.interface';
+import { GameService } from '@src/game/game.service';
+import { GameStateManager } from '@src/game/game.state.manager';
+import { GameLogicService } from '@src/game/game.logic.service';
+import { NotificationService } from '@src/game/notifications/notification.service';
 
 @Injectable()
 export class PlayerActionService {
@@ -91,13 +91,13 @@ export class PlayerActionService {
   }
 
   async drawTile(roomId: string, playerId: string) {
-    // const lockAcquired = await this.gameStateManager.acquireLock(roomId);
-    // if (!lockAcquired) {
-    //   throw new GameError('LOCK_NOT_ACQUIRED', 'Could not acquire lock');
-    // }
+    const lockAcquired = await this.gameStateManager.acquireLock(roomId);
+    if (!lockAcquired) {
+      throw new GameError('LOCK_NOT_ACQUIRED', 'Could not acquire lock');
+    }
     try {
       const gameState = await this.gameStateManager.getGameState(roomId);
-
+      this.logger.debug(`Player ${playerId} is attempting to draw a tile.`);
       if (gameState.players[gameState.turnIndex] !== playerId) {
         throw new GameError('NOT_YOUR_TURN', 'It is not your turn');
       }
@@ -108,9 +108,12 @@ export class PlayerActionService {
           'Cannot draw tiles in a 4-player game',
         );
       }
+      this.logger.debug(
+        `Draw pile size before drawing: ${gameState.drawPile.length}`,
+      );
 
       if (gameState.drawPile.length === 0) {
-        await this.passTurn(roomId, playerId);
+        await this.passTurn(roomId, playerId, false);
         return;
       }
 
@@ -119,8 +122,14 @@ export class PlayerActionService {
 
       gameState.lastAction = { playerId, action: 'draw' };
 
+      this.logger.debug(
+        `Player ${playerId} drew tile [${drawnTile.left}:${drawnTile.right}]`,
+      );
+
       // Notify the player about the drawn tile
       this.notificationService.notifyPlayerTileDrawn(playerId, drawnTile);
+
+      await this.gameStateManager.setGameState(roomId, gameState);
 
       // If the player can now play, they should play
       if (this.gameLogicService.canPlayTile(gameState, playerId)) {
@@ -128,8 +137,15 @@ export class PlayerActionService {
         await this.gameStateManager.setGameState(roomId, gameState);
       } else {
         // The player still cannot play; pass the turn
-        await this.passTurn(roomId, playerId);
+        await this.passTurn(roomId, playerId, false);
       }
+
+      this.logger.debug(
+        `Player ${playerId}'s hand after drawing: ${JSON.stringify(gameState.hands[playerId])}`,
+      );
+      this.logger.debug(
+        `Draw pile size after drawing: ${gameState.drawPile.length}`,
+      );
 
       // Notify other players about the draw action
       this.notificationService.notifyPlayersOfDraw(gameState, playerId);
@@ -141,10 +157,16 @@ export class PlayerActionService {
     }
   }
 
-  async passTurn(roomId: string, playerId: string) {
-    const lockAcquired = await this.gameStateManager.acquireLock(roomId);
-    if (!lockAcquired) {
-      throw new GameError('LOCK_NOT_ACQUIRED', 'Could not acquire lock');
+  async passTurn(
+    roomId: string,
+    playerId: string,
+    acquireLock: boolean = true,
+  ) {
+    if (acquireLock) {
+      const lockAcquired = await this.gameStateManager.acquireLock(roomId);
+      if (!lockAcquired) {
+        throw new GameError('LOCK_NOT_ACQUIRED', 'Could not acquire lock');
+      }
     }
     try {
       const gameState = await this.gameStateManager.getGameState(roomId);
@@ -214,7 +236,7 @@ export class PlayerActionService {
     );
 
     this.logger.debug(
-      `Tile removed from hand - ${gameState.hands[playerId]} - ${tile.left} - ${tile.right} - ${playerId}`,
+      `Tile removed from hand Player(${playerId}) | Side(${side}) | Left(${tile.left}) | Right(${tile.right}) | ${JSON.stringify(gameState.hands[playerId])} `,
     );
 
     tile.timestamp = Date.now();
@@ -234,6 +256,10 @@ export class PlayerActionService {
       gameState.board.unshift(tile);
       // Atualiza a extremidade esquerda do tabuleiro
       gameState.boardEnds.left = tile.left;
+
+      this.logger.debug(
+        `Game Board Ends | Side(${side}) | Left(${gameState.boardEnds.left}) | Right(${gameState.boardEnds.right})`,
+      );
     } else {
       // Se a jogada é no lado direito
       if (tile.left !== gameState.boardEnds.right) {
@@ -248,6 +274,9 @@ export class PlayerActionService {
       gameState.board.push(tile);
       // Atualiza a extremidade direita do tabuleiro
       gameState.boardEnds.right = tile.right;
+      this.logger.debug(
+        `Game Board Ends | Side(${side}) | Left(${gameState.boardEnds.left}) | Right(${gameState.boardEnds.right})`,
+      );
     }
 
     // Tratamento para peças duplas
@@ -263,12 +292,22 @@ export class PlayerActionService {
       if (gameState.board.length === 1) {
         gameState.boardEnds.left = tile.left;
         gameState.boardEnds.right = tile.right;
+        this.logger.debug(
+          `Game Board has only one piece in game | Side(${side}) | Left(${gameState.boardEnds.left}) | Right(${gameState.boardEnds.right})`,
+        );
       }
+
+      this.logger.debug(
+        `Game Board Ends duplicate pieces | Side(${side}) | Left(${gameState.boardEnds.left}) | Right(${gameState.boardEnds.right})`,
+      );
     }
 
     // Armazena a última ação
     gameState.lastAction = { playerId, action: 'play' };
     gameState.moveHistory.push({ playerId, action: 'play', tile, side });
     gameState.isFirstPlay = false;
+    // this.logger.debug(
+    //   `Game Move History | ${JSON.stringify(gameState.moveHistory)}`,
+    // );
   }
 }

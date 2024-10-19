@@ -1,4 +1,4 @@
-import { Tile } from './tile.interface';
+import { Tile } from '@src/game/interfaces/tile.interface';
 
 export interface MoveHistory {
   playerId: string;
