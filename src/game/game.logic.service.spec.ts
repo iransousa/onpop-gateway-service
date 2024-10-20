@@ -84,9 +84,9 @@ describe('GameLogicService', () => {
 
   it('isValidMove should return false for an invalid move on the left side', () => {
     const gameState: GameState = {
-      board: [],
+      board: [{ left: 6, right: 1 }],
       boardEnds: { left: 6, right: 1 },
-      players: [],
+      players: ['player3'],
       hands: {},
       isFirstPlay: false,
       lastAction: null,
@@ -136,7 +136,7 @@ describe('GameLogicService', () => {
 
   it('isValidMove should return false for an invalid move on the right side', () => {
     const gameState: GameState = {
-      board: [],
+      board: [{ left: 6, right: 1 }],
       boardEnds: { left: 6, right: 1 },
       players: [],
       hands: {},
@@ -190,8 +190,29 @@ describe('GameLogicService', () => {
     const gameState: GameState = {
       board: [],
       boardEnds: { left: -1, right: -1 },
-      players: [],
-      hands: {},
+      players: ['player1', 'player2'],
+      hands: {
+        player1: [
+          {
+            left: 1,
+            right: 5,
+          },
+          {
+            left: 2,
+            right: 3,
+          },
+        ],
+        player2: [
+          {
+            left: 3,
+            right: 2,
+          },
+          {
+            left: 1,
+            right: 2,
+          },
+        ],
+      },
       isFirstPlay: true,
       lastAction: null,
       moveHistory: [],
@@ -204,7 +225,7 @@ describe('GameLogicService', () => {
       disconnectedPlayers: new Set<string>(),
       otherPlayersHandCounts: {},
       yourPosition: 0,
-      totalPlayers: 0,
+      totalPlayers: 2,
       roomId: '',
       drawPileCount: 0,
     };

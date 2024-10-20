@@ -1,8 +1,16 @@
-// jest.config.js
-
 import { pathsToModuleNameMapper } from 'ts-jest';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-import { compilerOptions } from './tsconfig';
+// Get the directory name
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Read and parse tsconfig.json
+const tsconfig = JSON.parse(
+  fs.readFileSync(path.resolve(__dirname, 'tsconfig.json'), 'utf-8'),
+);
 
 export default {
   preset: 'ts-jest',
@@ -15,7 +23,7 @@ export default {
   },
   collectCoverageFrom: ['<rootDir>/src/**/*.ts'],
   coverageDirectory: './coverage',
-  moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, {
+  moduleNameMapper: pathsToModuleNameMapper(tsconfig.compilerOptions.paths, {
     prefix: '<rootDir>/',
   }),
 };

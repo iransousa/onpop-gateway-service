@@ -18,9 +18,9 @@ export class GameLogicService {
     tile: Tile,
     side: 'left' | 'right' = 'left',
   ): boolean {
-    // this.logger.debug(
-    //   `Checking if move is valid for player ${gameState.players[gameState.turnIndex]} | Tile(${JSON.stringify(tile)}) | Side(${side}) | Board length: ${gameState.board.length} | Board ends: ${JSON.stringify(gameState.boardEnds)}`,
-    // );
+    this.logger.debug(
+      `Checking if move is valid for player ${gameState.players[gameState.turnIndex]} | Tile(${JSON.stringify(tile)}) | Side(${side}) | Board length: ${gameState.board.length} | Board ends: ${JSON.stringify(gameState.boardEnds)}`,
+    );
 
     if (gameState.board.length === 0) {
       // Verifica se a primeira jogada é válida de acordo com as regras
