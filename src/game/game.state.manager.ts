@@ -53,6 +53,9 @@ export class GameStateManager {
       yourPosition: 0,
       totalPlayers: players.length,
       otherPlayersHandCounts: {},
+      createdAt: new Date(),
+      finishedAt: null,
+      isFinished: false,
     };
 
     players.forEach((playerId) => {
@@ -214,5 +217,9 @@ export class GameStateManager {
   async getChatMessages(roomId: string): Promise<any[]> {
     const messages = await this.redisClient.lRange(`chat:${roomId}`, 0, -1);
     return messages.map((message) => JSON.parse(message));
+  }
+
+  async cleanAll(){
+    await this.redisClient.flushAll();
   }
 }

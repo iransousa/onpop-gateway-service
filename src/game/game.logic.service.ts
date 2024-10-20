@@ -110,19 +110,37 @@ export class GameLogicService {
   }
 
   isGameBlocked(gameState: GameState): boolean {
+    if (gameState.drawPile.length > 0) {
+      this.logger.debug('Draw pile is not empty. Game is not blocked.');
+      return false;
+    }
+
+    if (gameState.isFirstPlay) {
+      this.logger.debug('First play has not been made. Game is not blocked.');
+      return false;
+    }
+
     const leftEnd = gameState.boardEnds.left;
     const rightEnd = gameState.boardEnds.right;
 
-    return gameState.players.every((playerId) => {
+    const allPlayersCannotPlay = gameState.players.every((playerId) => {
       const playerTiles = gameState.hands[playerId];
-      return !playerTiles.some(
+      const canPlayerPlay = playerTiles.some(
         (tile) =>
           tile.left === leftEnd ||
           tile.right === leftEnd ||
           tile.left === rightEnd ||
           tile.right === rightEnd,
       );
+      this.logger.debug(`Player ${playerId} can play: ${canPlayerPlay}`);
+      return !canPlayerPlay;
     });
+
+    if (allPlayersCannotPlay) {
+      this.logger.debug('All players cannot play. Game is blocked.');
+    }
+
+    return allPlayersCannotPlay;
   }
 
   checkWinner(gameState: GameState): string | null {
@@ -135,19 +153,34 @@ export class GameLogicService {
     return null;
   }
 
-  determineWinnerByLowestTile(gameState: GameState): string {
+  determineWinnerByLowestTile(gameState: GameState): string | null {
     let lowestSum = Infinity;
-    let winner: string = gameState.players[0];
+    let winners: string[] = [];
 
     for (const playerId of gameState.players) {
       const sum = calculateHandScore(gameState.hands[playerId]);
       if (sum < lowestSum) {
         lowestSum = sum;
-        winner = playerId;
+        winners = [playerId]; // Atualiza a lista de vencedores com o jogador atual
+      } else if (sum === lowestSum) {
+        winners.push(playerId); // Adiciona o jogador ao grupo dos que têm a menor pontuação
       }
     }
 
-    return winner;
+    // Se houver mais de um jogador com a mesma pontuação mínima, é possível desempatar de acordo com quem jogou a última peça
+    if (winners.length > 1) {
+      // Verifica quem jogou a última peça (baseado no histórico de jogadas)
+      const lastPlayerId = gameState.moveHistory[gameState.moveHistory.length - 1].playerId;
+
+      if (winners.includes(lastPlayerId)) {
+        return lastPlayerId; // O último jogador que jogou, entre os empatados, é o vencedor
+      } else {
+        // Retorna o primeiro jogador dos empatados, como critério de desempate simples
+        return winners[0];
+      }
+    }
+
+    return winners[0]; // Retorna o vencedor com a menor pontuação
   }
 
   calculateFinalScores(gameState: GameState): Record<string, number> {

@@ -26,4 +26,8 @@ export interface GameState {
   isFirstPlay: boolean;
   yourPosition: number;
   totalPlayers: number;
+  createdAt?: Date;
+  finishedAt?: Date;
+  isFinished?: boolean;
+  winner?: string;
 }

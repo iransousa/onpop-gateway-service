@@ -55,6 +55,9 @@ export class PlayerActionService {
       // Check for winner
       const winner = this.gameLogicService.checkWinner(gameState);
       if (winner) {
+        this.logger.debug(
+          ` Player ${winner} has won the game in room ${roomId}`,
+        );
         await this.gameService.endGame(roomId, winner);
         return;
       }
@@ -97,7 +100,7 @@ export class PlayerActionService {
     }
     try {
       const gameState = await this.gameStateManager.getGameState(roomId);
-      this.logger.debug(`Player ${playerId} is attempting to draw a tile.`);
+
       if (gameState.players[gameState.turnIndex] !== playerId) {
         throw new GameError('NOT_YOUR_TURN', 'It is not your turn');
       }
@@ -108,47 +111,53 @@ export class PlayerActionService {
           'Cannot draw tiles in a 4-player game',
         );
       }
-      this.logger.debug(
-        `Draw pile size before drawing: ${gameState.drawPile.length}`,
-      );
 
-      if (gameState.drawPile.length === 0) {
-        await this.passTurn(roomId, playerId, false);
-        return;
+      // Loop to draw tiles until the player can play or draw pile is empty
+      while (
+        !this.gameLogicService.canPlayTile(gameState, playerId) &&
+        gameState.drawPile.length > 0
+      ) {
+        const drawnTile = gameState.drawPile.pop()!;
+        gameState.hands[playerId].push(drawnTile);
+
+        gameState.lastAction = { playerId, action: 'draw' };
+
+        // Notify the player about the drawn tile
+        this.notificationService.notifyPlayerTileDrawn(playerId, drawnTile);
+
+        // Log the drawn tile and updated hand
+        this.logger.debug(
+          `Player ${playerId} drew tile [${drawnTile.left}:${drawnTile.right}]`,
+        );
+        this.logger.debug(
+          `Player ${playerId}'s hand after drawing: ${JSON.stringify(
+            gameState.hands[playerId],
+          )}`,
+        );
+        this.logger.debug(
+          `Draw pile size after drawing: ${gameState.drawPile.length}`,
+        );
       }
 
-      const drawnTile = gameState.drawPile.pop()!;
-      gameState.hands[playerId].push(drawnTile);
-
-      gameState.lastAction = { playerId, action: 'draw' };
-
-      this.logger.debug(
-        `Player ${playerId} drew tile [${drawnTile.left}:${drawnTile.right}]`,
-      );
-
-      // Notify the player about the drawn tile
-      this.notificationService.notifyPlayerTileDrawn(playerId, drawnTile);
-
-      await this.gameStateManager.setGameState(roomId, gameState);
-
-      // If the player can now play, they should play
+      // After drawing, check if the player can now play
       if (this.gameLogicService.canPlayTile(gameState, playerId)) {
-        // The player can play; do not change the turn
+        // The player can play; save the game state
         await this.gameStateManager.setGameState(roomId, gameState);
+
+        // Notify other players about the draw action
+        this.notificationService.notifyPlayersOfDraw(gameState, playerId);
+
+        // Optionally, you can auto-play or prompt the player to play
+        // For bots, you might want to auto-play
+        if (await this.botManager.isBot(playerId)) {
+          await this.botManager.playBotTurn(gameState, playerId);
+        } else {
+          // For human players, wait for them to play
+        }
       } else {
         // The player still cannot play; pass the turn
-        await this.passTurn(roomId, playerId, false);
+        await this.passTurn(roomId, playerId, false, gameState);
       }
-
-      this.logger.debug(
-        `Player ${playerId}'s hand after drawing: ${JSON.stringify(gameState.hands[playerId])}`,
-      );
-      this.logger.debug(
-        `Draw pile size after drawing: ${gameState.drawPile.length}`,
-      );
-
-      // Notify other players about the draw action
-      this.notificationService.notifyPlayersOfDraw(gameState, playerId);
     } catch (error) {
       this.logger.error(error.message, error.stack);
       throw error;
@@ -161,6 +170,7 @@ export class PlayerActionService {
     roomId: string,
     playerId: string,
     acquireLock: boolean = true,
+    gameState?: GameState,
   ) {
     if (acquireLock) {
       const lockAcquired = await this.gameStateManager.acquireLock(roomId);
@@ -169,7 +179,9 @@ export class PlayerActionService {
       }
     }
     try {
-      const gameState = await this.gameStateManager.getGameState(roomId);
+      if (!gameState) {
+        gameState = await this.gameStateManager.getGameState(roomId);
+      }
 
       if (gameState.players[gameState.turnIndex] !== playerId) {
         throw new GameError('NOT_YOUR_TURN', 'It is not your turn');
@@ -198,6 +210,7 @@ export class PlayerActionService {
       // Notify players
       this.notificationService.notifyPlayersOfPass(gameState, playerId);
 
+      // Save the updated game state
       const lastGameState = await this.gameStateManager.setGameState(
         roomId,
         gameState,
@@ -214,7 +227,9 @@ export class PlayerActionService {
       this.logger.error(error.message, error.stack);
       throw error;
     } finally {
-      await this.gameStateManager.releaseLock(roomId);
+      if (acquireLock) {
+        await this.gameStateManager.releaseLock(roomId);
+      }
     }
   }
 

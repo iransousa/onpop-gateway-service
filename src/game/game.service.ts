@@ -209,11 +209,18 @@ export class GameService {
     // Calculate final scores
     const scores = this.gameLogicService.calculateFinalScores(gameState);
 
+    this.logger.debug(`Game ended. Winner: ${winner}, Scores: ${JSON.stringify(scores)}`);
+    this.logger.debug(`Game state: ${JSON.stringify(gameState)}`);
+
     // Notify players of game end
     this.notificationService.notifyPlayersOfGameEnd(gameState, winner, scores);
 
+    gameState.finishedAt = new Date();
+    gameState.isFinished = true;
+    gameState.winner = winner;
+    await this.gameStateManager.setGameState(roomId, gameState);
     // Remove game state
-    await this.gameStateManager.removeGameState(roomId);
+    // await this.gameStateManager.removeGameState(roomId);
 
     // Remove bots from BotManager and Redis
     for (const playerId of gameState.players) {
