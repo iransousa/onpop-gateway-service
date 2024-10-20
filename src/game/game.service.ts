@@ -217,6 +217,7 @@ export class GameService {
     gameState.isFinished = true;
     gameState.winner = winner;
     gameState.reason = reason;
+    gameState.scores = scores;
     await this.gameStateManager.setGameState(roomId, gameState);
     this.logger.debug(`Game state: ${JSON.stringify(gameState)}`);
 

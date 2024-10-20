@@ -8,12 +8,17 @@ export class GameReportService {
   async generateGameReport(gameId: string): Promise<any> {
     const gameData = await this.fetchGameData(gameId); // Simulated fetch, replace with actual data fetching
 
+    if (!gameData) {
+      throw new Error('Game not found');
+    }
+
     const moves = gameData.moveHistory.map((move, index) => ({
       number: index + 1,
       playerId: move.playerId,
       action: move.action,
       tile: move.tile,
       side: move.side,
+      timestamp: move.timestamp,
     }));
 
     const report: any = {
@@ -31,6 +36,7 @@ export class GameReportService {
       hands: gameData.hands,
       drawPile: gameData.drawPile,
       drawPileCount: gameData.drawPileCount,
+      scores: gameData.scores,
     };
 
     return report;
@@ -47,10 +53,15 @@ export class GameReportService {
             table { width: 100%; border-collapse: collapse; margin: 20px 0; }
             table, th, td { border: 1px solid black; }
             th, td { padding: 10px; text-align: center; }
+            .board { display: flex; flex-wrap: wrap; margin-top: 20px; justify-content: center; }
+            .tile { display: flex; align-items: center; justify-content: center; border: 2px solid black; width: 60px; height: 30px; margin: 2px; font-weight: bold; }
+            .tile.horizontal { flex-direction: row; }
+            .tile.vertical { flex-direction: column; }
           </style>
         </head>
         <body>
           <h1>Game Report for ${report.gameId}</h1>
+          <p><strong>Gameid:</strong> ${report.gameId}</p>
           <p><strong>Players:</strong> ${report.players.join(', ')}</p>
           <p><strong>Winner:</strong> ${report.winner}</p>
           <p><strong>How they won:</strong> ${report.reason}</p>
@@ -98,7 +109,27 @@ export class GameReportService {
                 )
                 .join('')}
             </tbody>
-          </table>                    
+          </table>              
+          <h2>Scores:</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Left</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${Object.entries(report.scores)
+                .map(
+                  ([playerId, score]) => `
+                <tr>
+                  <td>${playerId}</td>
+                  <td>${score}</td>
+                </tr>
+              `,
+                )
+                .join('')}
+            </tbody>
+          </table>                  
           <h2>Moves:</h2>
           <table>
             <thead>
@@ -119,15 +150,28 @@ export class GameReportService {
                   <td>${move.number}</td>
                   <td>${move.playerId}</td>
                   <td>${move.action}</td>
-                  <td>${move.tile.left} | ${move.tile.right}</td>
-                  <td>${move.side}</td>
-                   <td>${new Date(move.tile.timestamp).toLocaleString()}</td>
+                  <td>${move.tile?.left} | ${move.tile?.right}</td>
+                  <td>${move.side ? move.side : '--'}</td>
+                  <td>${move.action === 'play' ? new Date(move.tile?.timestamp).toLocaleString() : new Date(move.timestamp).toLocaleString()}</td>
                 </tr>
               `,
                 )
                 .join('')}
             </tbody>
           </table>
+          <h2>Board State:</h2>
+          <div class="board">
+            ${report.boardState
+              .sort((a, b) => a.timestamp - b.timestamp)
+              .map(
+                (tile) => `
+              <div class="tile ${tile.left === tile.right ? 'vertical' : tile.side === 'left' || tile.side === 'right' ? 'horizontal' : 'vertical'}">
+                ${tile.left} | ${tile.right}
+              </div>
+            `,
+              )
+              .join('')}
+          </div>
         </body>
       </html>
     `;

@@ -5,4 +5,5 @@ export interface MoveHistory {
   action: 'play' | 'draw' | 'pass';
   tile?: Tile;
   side?: 'left' | 'right';
+  timestamp: number;
 }
