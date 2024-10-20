@@ -67,7 +67,7 @@ export class GameService {
     // If only one player remains, end the game
     if (gameState.players.length === 1) {
       const winner = gameState.players[0];
-      await this.endGame(roomId, winner);
+      await this.endGame(roomId, winner, 'opponent_left');
       return;
     }
 
@@ -198,7 +198,7 @@ export class GameService {
     this.timerService.setTurnTimer(roomId, turnTimer);
   }
 
-  async endGame(roomId: string, winner: string | null) {
+  async endGame(roomId: string, winner: string | null, reason?: string) {
     const gameState = await this.gameStateManager.getGameState(roomId);
     if (!gameState) return;
 
@@ -209,16 +209,20 @@ export class GameService {
     // Calculate final scores
     const scores = this.gameLogicService.calculateFinalScores(gameState);
 
-    this.logger.debug(`Game ended. Winner: ${winner}, Scores: ${JSON.stringify(scores)}`);
+    this.logger.debug(
+      `Game ended. Winner: ${winner}, Scores: ${JSON.stringify(scores)}`,
+    );
+
+    gameState.finishedAt = new Date();
+    gameState.isFinished = true;
+    gameState.winner = winner;
+    gameState.reason = reason;
+    await this.gameStateManager.setGameState(roomId, gameState);
     this.logger.debug(`Game state: ${JSON.stringify(gameState)}`);
 
     // Notify players of game end
     this.notificationService.notifyPlayersOfGameEnd(gameState, winner, scores);
 
-    gameState.finishedAt = new Date();
-    gameState.isFinished = true;
-    gameState.winner = winner;
-    await this.gameStateManager.setGameState(roomId, gameState);
     // Remove game state
     // await this.gameStateManager.removeGameState(roomId);
 

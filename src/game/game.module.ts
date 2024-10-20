@@ -10,6 +10,8 @@ import { GameLogicService } from '@src/game/game.logic.service';
 import { NotificationService } from '@src/game/notifications/notification.service';
 import { TimerService } from '@src/game/time.service';
 import { GameStateManager } from '@src/game/game.state.manager';
+import { GameReportController } from './game-report/game-report.controller';
+import { GameReportService } from '@src/game/game-report/service/game-report.service/game-report.service.service';
 
 @Module({
   imports: [forwardRef(() => GatewayModule), SharedModule],
@@ -21,6 +23,7 @@ import { GameStateManager } from '@src/game/game.state.manager';
     NotificationService,
     TimerService,
     GameStateManager,
+    GameReportService,
   ],
   exports: [
     GameService,
@@ -28,5 +31,6 @@ import { GameStateManager } from '@src/game/game.state.manager';
     PlayerActionService,
     NotificationService,
   ],
+  controllers: [GameReportController],
 })
 export class GameModule {}

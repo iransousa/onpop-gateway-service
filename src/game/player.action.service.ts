@@ -58,7 +58,7 @@ export class PlayerActionService {
         this.logger.debug(
           ` Player ${winner} has won the game in room ${roomId}`,
         );
-        await this.gameService.endGame(roomId, winner);
+        await this.gameService.endGame(roomId, winner, 'normal');
         return;
       }
 
@@ -93,6 +93,79 @@ export class PlayerActionService {
     }
   }
 
+  // async drawTile(roomId: string, playerId: string) {
+  //   const lockAcquired = await this.gameStateManager.acquireLock(roomId);
+  //   if (!lockAcquired) {
+  //     throw new GameError('LOCK_NOT_ACQUIRED', 'Could not acquire lock');
+  //   }
+  //   try {
+  //     const gameState = await this.gameStateManager.getGameState(roomId);
+  //
+  //     if (gameState.players[gameState.turnIndex] !== playerId) {
+  //       throw new GameError('NOT_YOUR_TURN', 'It is not your turn');
+  //     }
+  //
+  //     if (gameState.players.length === 4) {
+  //       throw new GameError(
+  //         'CANNOT_DRAW_TILES_IN_A_4_PLAYER_GAME',
+  //         'Cannot draw tiles in a 4-player game',
+  //       );
+  //     }
+  //
+  //     // Loop to draw tiles until the player can play or draw pile is empty
+  //     while (
+  //       !this.gameLogicService.canPlayTile(gameState, playerId) &&
+  //       gameState.drawPile.length > 0
+  //     ) {
+  //       const drawnTile = gameState.drawPile.pop()!;
+  //       gameState.hands[playerId].push(drawnTile);
+  //
+  //       gameState.lastAction = { playerId, action: 'draw' };
+  //
+  //       // Notify the player about the drawn tile
+  //       this.notificationService.notifyPlayerTileDrawn(playerId, drawnTile);
+  //
+  //       // Log the drawn tile and updated hand
+  //       this.logger.debug(
+  //         `Player ${playerId} drew tile [${drawnTile.left}:${drawnTile.right}]`,
+  //       );
+  //       this.logger.debug(
+  //         `Player ${playerId}'s hand after drawing: ${JSON.stringify(
+  //           gameState.hands[playerId],
+  //         )}`,
+  //       );
+  //       this.logger.debug(
+  //         `Draw pile size after drawing: ${gameState.drawPile.length}`,
+  //       );
+  //     }
+  //
+  //     // After drawing, check if the player can now play
+  //     if (this.gameLogicService.canPlayTile(gameState, playerId)) {
+  //       // The player can play; save the game state
+  //       await this.gameStateManager.setGameState(roomId, gameState);
+  //
+  //       // Notify other players about the draw action
+  //       this.notificationService.notifyPlayersOfDraw(gameState, playerId);
+  //
+  //       // Optionally, you can auto-play or prompt the player to play
+  //       // For bots, you might want to auto-play
+  //       if (await this.botManager.isBot(playerId)) {
+  //         await this.botManager.playBotTurn(gameState, playerId);
+  //       } else {
+  //         // For human players, wait for them to play
+  //       }
+  //     } else {
+  //       // The player still cannot play; pass the turn
+  //       await this.passTurn(roomId, playerId, false, gameState);
+  //     }
+  //   } catch (error) {
+  //     this.logger.error(error.message, error.stack);
+  //     throw error;
+  //   } finally {
+  //     await this.gameStateManager.releaseLock(roomId);
+  //   }
+  // }
+
   async drawTile(roomId: string, playerId: string) {
     const lockAcquired = await this.gameStateManager.acquireLock(roomId);
     if (!lockAcquired) {
@@ -112,51 +185,57 @@ export class PlayerActionService {
         );
       }
 
-      // Loop to draw tiles until the player can play or draw pile is empty
-      while (
-        !this.gameLogicService.canPlayTile(gameState, playerId) &&
-        gameState.drawPile.length > 0
-      ) {
-        const drawnTile = gameState.drawPile.pop()!;
-        gameState.hands[playerId].push(drawnTile);
+      // Verifica se o jogador pode jogar, caso contrário, ele precisa comprar uma pedra
+      if (!this.gameLogicService.canPlayTile(gameState, playerId)) {
+        if (gameState.drawPile.length > 0) {
+          // Compra uma pedra do monte
+          const drawnTile = gameState.drawPile.pop()!;
+          gameState.hands[playerId].push(drawnTile);
 
-        gameState.lastAction = { playerId, action: 'draw' };
+          gameState.lastAction = { playerId, action: 'draw' };
 
-        // Notify the player about the drawn tile
-        this.notificationService.notifyPlayerTileDrawn(playerId, drawnTile);
+          // Notifica o jogador sobre a pedra comprada
+          this.notificationService.notifyPlayerTileDrawn(playerId, drawnTile);
 
-        // Log the drawn tile and updated hand
-        this.logger.debug(
-          `Player ${playerId} drew tile [${drawnTile.left}:${drawnTile.right}]`,
-        );
-        this.logger.debug(
-          `Player ${playerId}'s hand after drawing: ${JSON.stringify(
-            gameState.hands[playerId],
-          )}`,
-        );
-        this.logger.debug(
-          `Draw pile size after drawing: ${gameState.drawPile.length}`,
-        );
-      }
+          // Log da pedra comprada e da mão atualizada
+          this.logger.debug(
+            `Player ${playerId} drew tile [${drawnTile.left}:${drawnTile.right}]`,
+          );
+          this.logger.debug(
+            `Player ${playerId}'s hand after drawing: ${JSON.stringify(
+              gameState.hands[playerId],
+            )}`,
+          );
+          this.logger.debug(
+            `Draw pile size after drawing: ${gameState.drawPile.length}`,
+          );
 
-      // After drawing, check if the player can now play
-      if (this.gameLogicService.canPlayTile(gameState, playerId)) {
-        // The player can play; save the game state
+          // Salvar o estado do jogo
+          await this.gameStateManager.setGameState(roomId, gameState);
+
+          // Se o jogador ainda não puder jogar, ele terá que solicitar uma nova compra
+          if (!this.gameLogicService.canPlayTile(gameState, playerId)) {
+            // Notifica que o jogador precisa comprar novamente ou passar a vez
+            this.notificationService.notifyPlayersOfDraw(gameState, playerId);
+          }
+        } else {
+          // Não há mais pedras para comprar, passar a vez
+          await this.passTurn(roomId, playerId, false, gameState);
+        }
+      } else {
+        // Jogador pode jogar; prossegue normalmente
+        // Salvar o estado do jogo
         await this.gameStateManager.setGameState(roomId, gameState);
 
-        // Notify other players about the draw action
+        // Notificar outros jogadores sobre a ação de compra
         this.notificationService.notifyPlayersOfDraw(gameState, playerId);
 
-        // Optionally, you can auto-play or prompt the player to play
-        // For bots, you might want to auto-play
+        // Para bots, você pode querer jogar automaticamente
         if (await this.botManager.isBot(playerId)) {
           await this.botManager.playBotTurn(gameState, playerId);
         } else {
-          // For human players, wait for them to play
+          // Para jogadores humanos, aguarde eles jogarem
         }
-      } else {
-        // The player still cannot play; pass the turn
-        await this.passTurn(roomId, playerId, false, gameState);
       }
     } catch (error) {
       this.logger.error(error.message, error.stack);
@@ -200,7 +279,7 @@ export class PlayerActionService {
       if (this.gameLogicService.isGameBlocked(gameState)) {
         const winner =
           this.gameLogicService.determineWinnerByLowestTile(gameState);
-        await this.gameService.endGame(gameState.roomId, winner);
+        await this.gameService.endGame(gameState.roomId, winner, 'blocked');
         return;
       }
 

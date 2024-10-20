@@ -170,7 +170,8 @@ export class GameLogicService {
     // Se houver mais de um jogador com a mesma pontuação mínima, é possível desempatar de acordo com quem jogou a última peça
     if (winners.length > 1) {
       // Verifica quem jogou a última peça (baseado no histórico de jogadas)
-      const lastPlayerId = gameState.moveHistory[gameState.moveHistory.length - 1].playerId;
+      const lastPlayerId =
+        gameState.moveHistory[gameState.moveHistory.length - 1].playerId;
 
       if (winners.includes(lastPlayerId)) {
         return lastPlayerId; // O último jogador que jogou, entre os empatados, é o vencedor
@@ -221,7 +222,7 @@ export class GameLogicService {
 
       if (highestDouble === -1) {
         // Nenhum jogador tem dupla, qualquer pedra pode ser jogada
-        return true;
+        return false;
       } else {
         // O jogador deve jogar a maior dupla encontrada
         return tile.left === highestDouble && tile.right === highestDouble;

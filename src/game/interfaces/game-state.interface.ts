@@ -30,4 +30,5 @@ export interface GameState {
   finishedAt?: Date;
   isFinished?: boolean;
   winner?: string;
+  reason?: string;
 }
