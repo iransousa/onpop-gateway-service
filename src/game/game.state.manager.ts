@@ -166,6 +166,14 @@ export class GameStateManager {
     await this.redisClient.del(`game:${roomId}`);
   }
 
+  async cleanRoom(gameState: GameState) {
+    await Promise.all([
+      this.removeGameState(gameState.roomId),
+      this.removePlayerRoomMapping(gameState.players),
+      this.cleanChatMessages(gameState.roomId),
+    ]);
+  }
+
   async removePlayerRoomMapping(playerIds: string[]): Promise<void> {
     for (const playerId of playerIds) {
       await this.redisClient.del(`player:${playerId}:room`);
@@ -219,7 +227,11 @@ export class GameStateManager {
     return messages.map((message) => JSON.parse(message));
   }
 
-  async cleanAll(){
+  async cleanChatMessages(roomId: string) {
+    await this.redisClient.del(`chat:${roomId}`);
+  }
+
+  async cleanAll() {
     await this.redisClient.flushAll();
   }
 }

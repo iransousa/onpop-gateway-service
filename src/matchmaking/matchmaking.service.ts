@@ -50,6 +50,7 @@ export class MatchmakingService {
       this.logger.error(
         `Error adding player ${playerId} to matchmaking queue: ${error}`,
       );
+      this.activePlayers.delete(playerId);
     }
   }
 

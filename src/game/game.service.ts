@@ -8,6 +8,8 @@ import { NotificationService } from '@src/game/notifications/notification.servic
 import { GameState } from '@src/game/interfaces/game-state.interface';
 import { TimerService } from '@src/game/time.service';
 import { AppLogger } from '@src/shared/logger/logger.service';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 
 const TURN_TIMEOUT = 30000; // 30 seconds
 const TURN_WARNING = 10000; // Warn 10 seconds before timeout
@@ -24,6 +26,7 @@ export class GameService {
     @Inject(forwardRef(() => GatewayService))
     @Inject(forwardRef(() => TimerService))
     private readonly timerService: TimerService,
+    private readonly httpService: HttpService,
   ) {
     this.logger.setContext(GameService.name);
   }
@@ -225,12 +228,38 @@ export class GameService {
     this.notificationService.notifyPlayersOfGameEnd(gameState, winner, scores);
 
     // Remove game state
-    // await this.gameStateManager.removeGameState(roomId);
+    await this.gameStateManager.cleanRoom(gameState);
 
     // Remove bots from BotManager and Redis
     for (const playerId of gameState.players) {
       if (await this.botManager.isBot(playerId)) {
         await this.botManager.removeBot(playerId);
+      }
+    }
+
+    // Processar transação financeira se houver um vencedor
+    if (winner && gameState.players.length > 1) {
+      const loserIds = gameState.players.filter((player) => player !== winner);
+      const betAmount = gameState.betAmount; // Assumindo que `betAmount` esteja no estado do jogo
+
+      try {
+        await firstValueFrom(
+          this.httpService.post(
+            'https://onpogames.technolimit.com.br/api/v1/conta/transacoes/game',
+            {
+              winnerId: winner,
+              loserIds: loserIds,
+              betAmount: betAmount,
+              gameId: roomId,
+            },
+          ),
+        );
+        this.logger.debug('Transação do jogo processada com sucesso.');
+      } catch (error) {
+        this.logger.error(
+          'Erro ao processar transação do jogo:',
+          error.message,
+        );
       }
     }
   }

@@ -45,6 +45,7 @@ export class MatchmakingProcessor extends WorkerHost {
         this.logger.error(
           `Error in matchmaking for player ${playerId}: ${error.message}`,
         );
+        this.removePlayerState(playerId);
       }
     } else if (job.name === 'create-game-with-bots') {
       await this.handleCreateGameWithBots(
@@ -76,74 +77,83 @@ export class MatchmakingProcessor extends WorkerHost {
     });
   }
 
-  // private async checkForMatch() {
-  //   this.logger.log('Checking for match...');
-  //   const betGroups = this.groupByBetAmount(this.waitingPlayers);
-  //   this.logger.log('Grouped players:', betGroups);
-  //
-  //   for (const betAmount in betGroups) {
-  //     const players = betGroups[betAmount];
-  //
-  //     if (players.length >= 2) {
-  //       if (this.matchmakingTimeout) {
-  //         clearTimeout(this.matchmakingTimeout);
-  //       }
-  //
-  //       this.matchmakingTimeout = setTimeout(async () => {
-  //         if (players.length === 4) {
-  //           // if (players.length === 4) {
-  //           const matchedPlayers = players.splice(0, 4);
-  //           await this.createMatch(matchedPlayers);
-  //         } else {
-  //           // await this.askPlayersToStart(
-  //           //   players.slice(0, players.length >= 3 ? 3 : 2),
-  //           // );
-  //         }
-  //       }, 10000); // 10 segundos de espera
-  //     }
-  //   }
-  // }
-
   private async checkForMatch() {
     this.logger.log('Checking for match...');
-
-    // Agrupar jogadores por valor de aposta
     const betGroups = this.groupByBetAmount(this.waitingPlayers);
-    this.logger.log('Grouped players by bet amount:', betGroups);
+    this.logger.log('Grouped players:', betGroups);
 
-    // Percorrer cada grupo de apostas
     for (const betAmount in betGroups) {
       const players = betGroups[betAmount];
 
-      // Agrupar jogadores pelo minPlayers
-      const minPlayersGroups = this.groupByMinPlayers(players);
-
-      for (const minPlayers in minPlayersGroups) {
-        const group = minPlayersGroups[minPlayers];
-
-        // Verifica se há jogadores suficientes de acordo com o minPlayers
-        if (group.length >= Number(minPlayers)) {
-          this.logger.log(
-            `Found ${group.length} players for bet amount ${betAmount} with minPlayers ${minPlayers}`,
-          );
-
-          // Limpa qualquer timeout existente para esta partida
-          if (this.matchmakingTimeout) {
-            clearTimeout(this.matchmakingTimeout);
-          }
-
-          // Verificar se deve iniciar com 2, 3 ou 4 jogadores
-          const matchedPlayers = group.splice(0, Math.min(group.length, 4)); // Pega o mínimo de jogadores até 4
-
-          await this.createMatch(matchedPlayers);
-        } else {
-          this.logger.log(
-            `Not enough players for bet amount ${betAmount} with minPlayers ${minPlayers}, waiting...`,
-          );
+      if (players.length >= 2) {
+        // Limpar qualquer timeout anterior, caso exista
+        if (this.matchmakingTimeout) {
+          clearTimeout(this.matchmakingTimeout);
         }
+
+        // Esperar 30 segundos para iniciar a partida, caso haja no mínimo 2 jogadores
+        this.matchmakingTimeout = setTimeout(async () => {
+          const currentPlayers = betGroups[betAmount]; // Reavaliar o número de jogadores após o tempo de espera
+          if (currentPlayers.length >= 2) {
+            const matchedPlayers = currentPlayers.splice(
+              0,
+              Math.min(currentPlayers.length, 4),
+            );
+            await this.createMatch(matchedPlayers);
+          } else {
+            this.logger.log(
+              `Not enough players for bet amount ${betAmount} after waiting, still waiting...`,
+            );
+          }
+        }, 30000); // 30 segundos de espera
+      } else {
+        this.logger.log(
+          `Not enough players for bet amount ${betAmount}, waiting for more players...`,
+        );
       }
     }
   }
+
+  // private async checkForMatch() {
+  //   this.logger.log('Checking for match...');
+  //
+  //   // Agrupar jogadores por valor de aposta
+  //   const betGroups = this.groupByBetAmount(this.waitingPlayers);
+  //   this.logger.log('Grouped players by bet amount:', betGroups);
+  //
+  //   // Percorrer cada grupo de apostas
+  //   for (const betAmount in betGroups) {
+  //     const players = betGroups[betAmount];
+  //
+  //     // Agrupar jogadores pelo minPlayers
+  //     const minPlayersGroups = this.groupByMinPlayers(players);
+  //
+  //     for (const minPlayers in minPlayersGroups) {
+  //       const group = minPlayersGroups[minPlayers];
+  //
+  //       // Verifica se há jogadores suficientes de acordo com o minPlayers
+  //       if (group.length >= Number(minPlayers)) {
+  //         this.logger.log(
+  //           `Found ${group.length} players for bet amount ${betAmount} with minPlayers ${minPlayers}`,
+  //         );
+  //
+  //         // Limpa qualquer timeout existente para esta partida
+  //         if (this.matchmakingTimeout) {
+  //           clearTimeout(this.matchmakingTimeout);
+  //         }
+  //
+  //         // Verificar se deve iniciar com 2, 3 ou 4 jogadores
+  //         const matchedPlayers = group.splice(0, Math.min(group.length, 4)); // Pega o mínimo de jogadores até 4
+  //
+  //         await this.createMatch(matchedPlayers);
+  //       } else {
+  //         this.logger.log(
+  //           `Not enough players for bet amount ${betAmount} with minPlayers ${minPlayers}, waiting...`,
+  //         );
+  //       }
+  //     }
+  //   }
+  // }
 
   private groupByMinPlayers(players: Player[]): { [key: number]: Player[] } {
     return players.reduce(
@@ -184,6 +194,13 @@ export class MatchmakingProcessor extends WorkerHost {
     );
   }
 
+  private removePlayerState(playerId: string) {
+    this.waitingPlayers = this.waitingPlayers.filter(
+      (player) => player.playerId !== playerId,
+    );
+    this.logger.log(`Player ${playerId} removed from waiting players state`);
+  }
+
   private async createMatch(players: Player[]) {
     this.logger.log(
       `Match created for players: ${players.map((p) => p.playerId).join(', ')}`,
@@ -196,8 +213,6 @@ export class MatchmakingProcessor extends WorkerHost {
     );
 
     // Remover os jogadores da fila de espera
-    this.waitingPlayers = this.waitingPlayers.filter(
-      (p) => !players.includes(p),
-    );
+    players.forEach((player) => this.removePlayerState(player.playerId));
   }
 }
