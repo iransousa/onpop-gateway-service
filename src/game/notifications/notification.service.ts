@@ -125,10 +125,14 @@ export class NotificationService {
     });
   }
 
-  notifyPlayersOfDraw(gameState: GameState, playerId: string) {
+  notifyPlayersOfDraw(
+    gameState: GameState,
+    playerId: string,
+    topic: string = 'player_drew_tile',
+  ) {
     gameState.players.forEach((player) => {
       if (player !== playerId) {
-        this.gatewayService.notifyPlayer(player, 'player_drew_tile', {
+        this.gatewayService.notifyPlayer(player, topic, {
           playerId,
         });
         this.sendGameStateToPlayer(gameState, playerId);
