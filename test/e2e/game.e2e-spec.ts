@@ -15,6 +15,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { BullModule } from '@nestjs/bullmq';
 import { GameState } from '@src/game/interfaces/game-state.interface';
+import { HttpModule } from '@nestjs/axios';
 
 describe('GameService Integration Test', () => {
   let app: INestApplication;
@@ -30,7 +31,7 @@ describe('GameService Integration Test', () => {
     const moduleRef = await Test.createTestingModule({
       imports: [
         AppModule,
-        AppModule,
+        HttpModule,
         BullModule.registerQueueAsync({
           name: 'matchmaking',
           imports: [ConfigModule],
