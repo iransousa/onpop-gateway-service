@@ -150,7 +150,11 @@ export class PlayerActionService {
           // Se o jogador ainda não puder jogar, ele terá que solicitar uma nova compra
           if (!this.gameLogicService.canPlayTile(gameState, playerId)) {
             // Notifica que o jogador precisa comprar novamente ou passar a vez
-            this.notificationService.notifyPlayersOfDraw(gameState, playerId);
+            this.notificationService.notifyPlayersOfDraw(
+              gameState,
+              playerId,
+              'player_need_draw_again',
+            );
           }
         } else {
           // Não há mais pedras para comprar, passar a vez
