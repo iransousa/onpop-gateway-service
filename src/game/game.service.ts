@@ -239,24 +239,41 @@ export class GameService {
 
     // Processar transação financeira se houver um vencedor
     if (winner && gameState.players.length > 1) {
-      const loserIds = gameState.players.filter((player) => player !== winner);
+      // Fazer o parsing dos jogadores a partir do array de strings JSON
+      const players = gameState.players.map((player) => JSON.parse(player));
+
+      // Encontrar o vencedor e os perdedores
+      const parsedWinner = players.find((player) => player.name === winner);
+      if (!parsedWinner) {
+        throw new Error(
+          `Vencedor ${winner} não encontrado na lista de jogadores.`,
+        );
+      }
+
+      const loserIds = players
+        .filter((player) => player.name !== winner)
+        .map((loser) => loser.id);
+
       const betAmount = gameState.betAmount; // Assumindo que `betAmount` esteja no estado do jogo
-      this.logger.debug(gameState.players.toString());
+
+      this.logger.debug(JSON.stringify(players));
       try {
         this.logger.debug(
-          ` Processando transação do jogo para ${winner} - ${loserIds} - ${betAmount} - ${roomId}`,
+          `Processando transação do jogo para vencedor ${parsedWinner.id} - perdedores ${loserIds} - valor ${betAmount} - jogo ${roomId}`,
         );
+
         await firstValueFrom(
           this.httpService.post(
             'https://onpogames.technolimit.com.br/api/v1/conta/transacoes/game',
             {
-              winnerId: winner,
+              winnerId: parsedWinner.id,
               loserIds: loserIds,
               betAmount: betAmount,
               gameId: roomId,
             },
           ),
         );
+
         this.logger.debug('Transação do jogo processada com sucesso.');
       } catch (error) {
         this.logger.error(
