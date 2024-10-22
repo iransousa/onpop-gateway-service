@@ -241,8 +241,11 @@ export class GameService {
     if (winner && gameState.players.length > 1) {
       const loserIds = gameState.players.filter((player) => player !== winner);
       const betAmount = gameState.betAmount; // Assumindo que `betAmount` esteja no estado do jogo
-
+      this.logger.debug(gameState.players.toString());
       try {
+        this.logger.debug(
+          ` Processando transação do jogo para ${winner} - ${loserIds} - ${betAmount} - ${roomId}`,
+        );
         await firstValueFrom(
           this.httpService.post(
             'https://onpogames.technolimit.com.br/api/v1/conta/transacoes/game',
