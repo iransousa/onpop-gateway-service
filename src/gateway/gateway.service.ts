@@ -259,7 +259,7 @@ export class GatewayService
   @SubscribeMessage('join_matchmaking')
   async handleJoinMatchmaking(
     client: Socket,
-    data: { betAmount: number; minPlayers: number },
+    data: { betAmount: number; minPlayers: number; isBot: boolean },
   ) {
     const playerId = client.data.user.id;
     this.logger.log(
@@ -271,6 +271,7 @@ export class GatewayService
         data.betAmount,
         500,
         data.minPlayers,
+        true,
       );
       return {
         message: 'Player added to matchmaking queue',

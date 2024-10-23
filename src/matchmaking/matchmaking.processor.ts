@@ -63,18 +63,26 @@ export class MatchmakingProcessor extends WorkerHost {
     betAmount: number,
     botDifficulty: 'easy' | 'medium' | 'hard',
   ) {
-    const gameState = await this.gameService.initializeGameWithBots(
-      [playerId],
-      botCount,
-      betAmount,
-      botDifficulty,
-    );
+    try {
+      const gameState = await this.gameService.initializeGameWithBots(
+        [playerId],
+        botCount,
+        betAmount,
+        botDifficulty,
+      );
 
-    this.gatewayService.notifyPlayer(playerId, 'game_started', {
-      roomId: gameState.roomId,
-      players: gameState.players,
-      hands: gameState.hands[playerId],
-    });
+      this.gatewayService.notifyPlayer(playerId, 'game_started', {
+        roomId: gameState.roomId,
+        players: gameState.players,
+        hands: gameState.hands[playerId],
+      });
+      // await this.gameService.startTurnTimer(gameState.roomId);
+    } catch (error) {
+      this.removePlayerState(playerId);
+      this.logger.error(
+        `Error creating game with bots for player ${playerId}: ${error.message}`,
+      );
+    }
   }
 
   private async checkForMatch() {

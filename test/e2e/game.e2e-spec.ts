@@ -94,14 +94,14 @@ describe('GameService Integration Test', () => {
     await app.close();
   });
 
-  it('should simulate a complete game with 2 players', async () => {
-    const players = ['player1', 'player2'];
+  it('should simulate a complete game with 1 player and 3 bots', async () => {
+    const players = ['player1', 'bot_1', 'bot_2', 'bot_3'];
     const betAmount = 100;
 
-    // Create the game
+    // Cria o jogo com 1 jogador humano e 3 bots
     let gameState = await gameService.createGameRoom(players, betAmount);
 
-    // Verify the first player is correct
+    // Verifica se o primeiro jogador está correto
     const highestDoubleInfo = findHighestDouble(gameState);
     if (highestDoubleInfo.playerId) {
       expect(gameState.players[gameState.turnIndex]).toBe(
@@ -112,10 +112,10 @@ describe('GameService Integration Test', () => {
     let gameOver = false;
 
     while (!gameOver) {
-      // Fetch the current game state at the start of the loop
+      // Obtem o estado atual do jogo no início do loop
       gameState = await gameStateManager.getGameState(gameState.roomId);
 
-      // Check if the game state is undefined
+      // Checa se o estado do jogo é indefinido (o jogo pode ter acabado)
       if (!gameState) {
         console.log(
           'Game state is no longer available. The game may have ended.',
@@ -123,7 +123,7 @@ describe('GameService Integration Test', () => {
         break;
       }
 
-      // Check if the game has finished
+      // Checa se o jogo já terminou
       if (gameState.isFinished) {
         gameOver = true;
         console.log(`Game has ended. Winner: ${gameState.winner}`);
@@ -138,48 +138,19 @@ describe('GameService Integration Test', () => {
       console.log(`Current player index: ${currentPlayerIndex}`);
       console.log(`Current player ID: ${currentPlayerId}`);
 
-      // Recalculate playable tiles
-      let playableTiles = playerHand.filter(
-        (tile) =>
-          gameLogicService.isValidMove(gameState, tile, 'left') ||
-          gameLogicService.isValidMove(gameState, tile, 'right'),
-      );
-
-      if (playableTiles.length > 0) {
-        // Play the first valid tile
-        const tileToPlay = playableTiles[0];
-        const side = gameLogicService.isValidMove(gameState, tileToPlay, 'left')
-          ? 'left'
-          : 'right';
-
-        await playerActionService.playTile(
-          gameState.roomId,
-          currentPlayerId,
-          tileToPlay,
-          side,
+      if (await botManager.isBot(currentPlayerId)) {
+        // Se o jogador atual for um bot, execute a jogada do bot
+        await botManager.playBotTurn(gameState, currentPlayerId);
+      } else {
+        // Recalcula as peças jogáveis
+        let playableTiles = playerHand.filter(
+          (tile) =>
+            gameLogicService.isValidMove(gameState, tile, 'left') ||
+            gameLogicService.isValidMove(gameState, tile, 'right'),
         );
 
-        // Update game state
-        gameState = await gameStateManager.getGameState(gameState.roomId);
-      } else {
-        // Player needs to draw tiles one at a time until they can play or the draw pile is empty
-        while (!playableTiles.length && gameState.drawPile.length > 0) {
-          await playerActionService.drawTile(gameState.roomId, currentPlayerId);
-
-          // Update game state after drawing
-          gameState = await gameStateManager.getGameState(gameState.roomId);
-          playerHand = gameState.hands[currentPlayerId];
-
-          // Recalculate playable tiles after drawing
-          playableTiles = playerHand.filter(
-            (tile) =>
-              gameLogicService.isValidMove(gameState, tile, 'left') ||
-              gameLogicService.isValidMove(gameState, tile, 'right'),
-          );
-        }
-
         if (playableTiles.length > 0) {
-          // Player can now play
+          // Joga a primeira peça válida
           const tileToPlay = playableTiles[0];
           const side = gameLogicService.isValidMove(
             gameState,
@@ -196,18 +167,62 @@ describe('GameService Integration Test', () => {
             side,
           );
 
-          // Update game state
+          // Atualiza o estado do jogo
           gameState = await gameStateManager.getGameState(gameState.roomId);
         } else {
-          // Draw pile is empty, and the player cannot play; pass the turn
-          await playerActionService.passTurn(gameState.roomId, currentPlayerId);
+          // O jogador precisa comprar peças até conseguir jogar ou o monte acabar
+          while (!playableTiles.length && gameState.drawPile.length > 0) {
+            await playerActionService.drawTile(
+              gameState.roomId,
+              currentPlayerId,
+            );
 
-          // Update game state
-          gameState = await gameStateManager.getGameState(gameState.roomId);
+            // Atualiza o estado do jogo após comprar
+            gameState = await gameStateManager.getGameState(gameState.roomId);
+            playerHand = gameState.hands[currentPlayerId];
+
+            // Recalcula as peças jogáveis após comprar
+            playableTiles = playerHand.filter(
+              (tile) =>
+                gameLogicService.isValidMove(gameState, tile, 'left') ||
+                gameLogicService.isValidMove(gameState, tile, 'right'),
+            );
+          }
+
+          if (playableTiles.length > 0) {
+            // O jogador agora pode jogar
+            const tileToPlay = playableTiles[0];
+            const side = gameLogicService.isValidMove(
+              gameState,
+              tileToPlay,
+              'left',
+            )
+              ? 'left'
+              : 'right';
+
+            await playerActionService.playTile(
+              gameState.roomId,
+              currentPlayerId,
+              tileToPlay,
+              side,
+            );
+
+            // Atualiza o estado do jogo
+            gameState = await gameStateManager.getGameState(gameState.roomId);
+          } else {
+            // O monte está vazio e o jogador não pode jogar; passa a vez
+            await playerActionService.passTurn(
+              gameState.roomId,
+              currentPlayerId,
+            );
+
+            // Atualiza o estado do jogo
+            gameState = await gameStateManager.getGameState(gameState.roomId);
+          }
         }
       }
 
-      // Check if the game is over
+      // Checa se o jogo terminou
       const winner = gameLogicService.checkWinner(gameState);
       if (winner) {
         gameOver = true;
@@ -224,11 +239,147 @@ describe('GameService Integration Test', () => {
         break;
       }
 
-      // Update currentPlayerIndex and currentPlayerId
+      // Atualiza currentPlayerIndex e currentPlayerId
       currentPlayerIndex = gameState.turnIndex;
       currentPlayerId = gameState.players[currentPlayerIndex];
     }
   }, 300000);
+
+  // it('should simulate a complete game with 2 players', async () => {
+  //   const players = ['player1', 'player2'];
+  //   const betAmount = 100;
+  //
+  //   // Create the game
+  //   let gameState = await gameService.createGameRoom(players, betAmount);
+  //
+  //   // Verify the first player is correct
+  //   const highestDoubleInfo = findHighestDouble(gameState);
+  //   if (highestDoubleInfo.playerId) {
+  //     expect(gameState.players[gameState.turnIndex]).toBe(
+  //       highestDoubleInfo.playerId,
+  //     );
+  //   }
+  //
+  //   let gameOver = false;
+  //
+  //   while (!gameOver) {
+  //     // Fetch the current game state at the start of the loop
+  //     gameState = await gameStateManager.getGameState(gameState.roomId);
+  //
+  //     // Check if the game state is undefined
+  //     if (!gameState) {
+  //       console.log(
+  //         'Game state is no longer available. The game may have ended.',
+  //       );
+  //       break;
+  //     }
+  //
+  //     // Check if the game has finished
+  //     if (gameState.isFinished) {
+  //       gameOver = true;
+  //       console.log(`Game has ended. Winner: ${gameState.winner}`);
+  //       break;
+  //     }
+  //
+  //     let currentPlayerIndex = gameState.turnIndex;
+  //     let currentPlayerId = gameState.players[currentPlayerIndex];
+  //     let playerHand = gameState.hands[currentPlayerId];
+  //
+  //     console.log(`Current turn: ${gameState.currentTurn}`);
+  //     console.log(`Current player index: ${currentPlayerIndex}`);
+  //     console.log(`Current player ID: ${currentPlayerId}`);
+  //
+  //     // Recalculate playable tiles
+  //     let playableTiles = playerHand.filter(
+  //       (tile) =>
+  //         gameLogicService.isValidMove(gameState, tile, 'left') ||
+  //         gameLogicService.isValidMove(gameState, tile, 'right'),
+  //     );
+  //
+  //     if (playableTiles.length > 0) {
+  //       // Play the first valid tile
+  //       const tileToPlay = playableTiles[0];
+  //       const side = gameLogicService.isValidMove(gameState, tileToPlay, 'left')
+  //         ? 'left'
+  //         : 'right';
+  //
+  //       await playerActionService.playTile(
+  //         gameState.roomId,
+  //         currentPlayerId,
+  //         tileToPlay,
+  //         side,
+  //       );
+  //
+  //       // Update game state
+  //       gameState = await gameStateManager.getGameState(gameState.roomId);
+  //     } else {
+  //       // Player needs to draw tiles one at a time until they can play or the draw pile is empty
+  //       while (!playableTiles.length && gameState.drawPile.length > 0) {
+  //         await playerActionService.drawTile(gameState.roomId, currentPlayerId);
+  //
+  //         // Update game state after drawing
+  //         gameState = await gameStateManager.getGameState(gameState.roomId);
+  //         playerHand = gameState.hands[currentPlayerId];
+  //
+  //         // Recalculate playable tiles after drawing
+  //         playableTiles = playerHand.filter(
+  //           (tile) =>
+  //             gameLogicService.isValidMove(gameState, tile, 'left') ||
+  //             gameLogicService.isValidMove(gameState, tile, 'right'),
+  //         );
+  //       }
+  //
+  //       if (playableTiles.length > 0) {
+  //         // Player can now play
+  //         const tileToPlay = playableTiles[0];
+  //         const side = gameLogicService.isValidMove(
+  //           gameState,
+  //           tileToPlay,
+  //           'left',
+  //         )
+  //           ? 'left'
+  //           : 'right';
+  //
+  //         await playerActionService.playTile(
+  //           gameState.roomId,
+  //           currentPlayerId,
+  //           tileToPlay,
+  //           side,
+  //         );
+  //
+  //         // Update game state
+  //         gameState = await gameStateManager.getGameState(gameState.roomId);
+  //       } else {
+  //         // Draw pile is empty, and the player cannot play; pass the turn
+  //         await playerActionService.passTurn(gameState.roomId, currentPlayerId);
+  //
+  //         // Update game state
+  //         gameState = await gameStateManager.getGameState(gameState.roomId);
+  //       }
+  //     }
+  //
+  //     // Check if the game is over
+  //     const winner = gameLogicService.checkWinner(gameState);
+  //     if (winner) {
+  //       gameOver = true;
+  //       expect(winner).toBeDefined();
+  //       console.log(`Winning player: ${winner}`);
+  //       break;
+  //     }
+  //
+  //     if (gameLogicService.isGameBlocked(gameState)) {
+  //       gameOver = true;
+  //       const winner = gameLogicService.determineWinnerByLowestTile(gameState);
+  //       expect(winner).toBeDefined();
+  //       console.log(`Game blocked. Player with lowest sum: ${winner}`);
+  //       break;
+  //     }
+  //
+  //     // Update currentPlayerIndex and currentPlayerId
+  //     currentPlayerIndex = gameState.turnIndex;
+  //     currentPlayerId = gameState.players[currentPlayerIndex];
+  //   }
+  // }, 300000);
 
   // it('should simulate a specific game with 2 players where one player bought all tiles', async () => {
   //   const roomId = 'game:game_1729469937509_ybpb4ou8g'; // O identificador do jogo salvo no Redis

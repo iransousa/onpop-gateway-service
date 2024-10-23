@@ -1,10 +1,10 @@
-// game/bot.manager.ts
-
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { BotPlayer, BotDifficulty } from '@src/game/bot-player';
 import { GameState } from '@src/game/interfaces/game-state.interface';
 import { PlayerActionService } from '@src/game/player.action.service';
 import { RedisClientType } from 'redis';
+import { GameLogicService } from '@src/game/game.logic.service';
+import { GameStateManager } from 'src/game/game.state.manager';
 
 @Injectable()
 export class BotManager {
@@ -12,6 +12,8 @@ export class BotManager {
     @Inject(forwardRef(() => PlayerActionService))
     private readonly playerActionService: PlayerActionService,
     @Inject('REDIS_CLIENT') private redisClient: RedisClientType<any, any>,
+    private readonly gameLogicService: GameLogicService,
+    private readonly gameStateManager: GameStateManager,
   ) {}
 
   async addBot(botId: string, difficulty: BotDifficulty) {
@@ -35,23 +37,67 @@ export class BotManager {
     // Simulate thinking delay
     await this.simulateThinking();
 
-    const decision = bot.decideTurn(gameState);
+    const playerHand = gameState.hands[botId];
 
-    switch (decision.action) {
-      case 'play':
+    // Recalculate playable tiles
+    let playableTiles = playerHand.filter(
+      (tile) =>
+        this.gameLogicService.isValidMove(gameState, tile, 'left') ||
+        this.gameLogicService.isValidMove(gameState, tile, 'right'),
+    );
+
+    if (playableTiles.length > 0) {
+      // Play the first valid tile
+      const tileToPlay = playableTiles[0];
+      const side = this.gameLogicService.isValidMove(
+        gameState,
+        tileToPlay,
+        'left',
+      )
+        ? 'left'
+        : 'right';
+
+      await this.playerActionService.playTile(
+        gameState.roomId,
+        botId,
+        tileToPlay,
+        side,
+      );
+    } else {
+      // Player needs to draw tiles one at a time until they can play or the draw pile is empty
+      while (!playableTiles.length && gameState.drawPile.length > 0) {
+        await this.playerActionService.drawTile(gameState.roomId, botId);
+
+        // Update game state after drawing
+        gameState = await this.gameStateManager.getGameState(gameState.roomId);
+        playableTiles = gameState.hands[botId].filter(
+          (tile) =>
+            this.gameLogicService.isValidMove(gameState, tile, 'left') ||
+            this.gameLogicService.isValidMove(gameState, tile, 'right'),
+        );
+      }
+
+      if (playableTiles.length > 0) {
+        // Player can now play
+        const tileToPlay = playableTiles[0];
+        const side = this.gameLogicService.isValidMove(
+          gameState,
+          tileToPlay,
+          'left',
+        )
+          ? 'left'
+          : 'right';
+
         await this.playerActionService.playTile(
           gameState.roomId,
           botId,
-          decision.tile!,
-          decision.side!,
+          tileToPlay,
+          side,
         );
-        break;
-      case 'draw':
-        await this.playerActionService.drawTile(gameState.roomId, botId);
-        break;
-      case 'pass':
+      } else {
+        // Draw pile is empty, and the bot cannot play; pass the turn
         await this.playerActionService.passTurn(gameState.roomId, botId);
-        break;
+      }
     }
   }
 

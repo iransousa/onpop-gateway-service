@@ -24,6 +24,7 @@ export class GameStateManager {
   async createGameState(
     players: string[],
     betAmount: number,
+    isBotGame: boolean = false,
   ): Promise<GameState> {
     const roomId = generateRoomId();
     const allTiles = generateAllTiles();
@@ -56,6 +57,7 @@ export class GameStateManager {
       createdAt: new Date(),
       finishedAt: null,
       isFinished: false,
+      isBotGame,
     };
 
     players.forEach((playerId) => {
@@ -188,17 +190,35 @@ export class GameStateManager {
     return null;
   }
 
-  async acquireLock(key: string, ttl: number = 5000): Promise<boolean> {
+  async acquireLock(
+    key: string,
+    ttl: number = 5000,
+    maxRetries: number = 5,
+    retryDelay: number = 200, // delay inicial em milissegundos
+  ): Promise<boolean> {
     const lockKey = `lock:${key}`;
-    const result = await this.redisClient.set(
-      lockKey,
-      GameStateManager.LOCK_VALUE,
-      {
-        NX: true,
-        PX: ttl,
-      },
-    );
-    return result === 'OK';
+    let attempt = 0;
+
+    while (attempt < maxRetries) {
+      const result = await this.redisClient.set(
+        lockKey,
+        GameStateManager.LOCK_VALUE,
+        {
+          NX: true,
+          PX: ttl,
+        },
+      );
+
+      if (result === 'OK') {
+        return true; // Lock adquirido com sucesso
+      }
+
+      attempt++;
+      const backoff = retryDelay * Math.pow(2, attempt); // Backoff exponencial
+      await new Promise((resolve) => setTimeout(resolve, backoff));
+    }
+
+    return false; // Não foi possível adquirir o lock após várias tentativas
   }
 
   async releaseLock(key: string): Promise<void> {

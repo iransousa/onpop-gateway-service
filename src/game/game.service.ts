@@ -34,10 +34,12 @@ export class GameService {
   async createGameRoom(
     players: string[],
     betAmount: number,
+    isBotGame = false,
   ): Promise<GameState> {
     const gameState = await this.gameStateManager.createGameState(
       players,
       betAmount,
+      isBotGame,
     );
 
     // Determine first player
@@ -87,16 +89,29 @@ export class GameService {
     humanPlayers: string[],
     botCount: number,
     betAmount: number,
-    botDifficulty: 'easy' | 'medium' | 'hard' = 'medium',
+    botDifficulty: 'easy' | 'medium' | 'hard' = 'hard',
   ): Promise<GameState> {
-    const bots = Array.from({ length: botCount }, (_, i) => `bot_${i + 1}`);
+    // Criar identificadores únicos para cada bot
+    const bots = Array.from(
+      { length: botCount },
+      (_, i) =>
+        `{"id":${Math.floor(Math.random() * 100000000)}, "name":"bot_${i + 1}"}`,
+    );
     const allPlayers = [...humanPlayers, ...bots];
 
-    const gameState = await this.createGameRoom(allPlayers, betAmount);
+    // Cria a sala de jogo com todos os jogadores, humanos e bots
+    const gameState = await this.createGameRoom(allPlayers, betAmount, true);
 
-    // Add bots to BotManager
+    // Adicionar bots ao BotManager para que possam tomar ações durante o jogo
     for (const botId of bots) {
       await this.botManager.addBot(botId, botDifficulty);
+    }
+
+    // Se o primeiro jogador for um bot, execute a jogada automaticamente
+    const firstPlayerId = gameState.players[gameState.turnIndex];
+    if (await this.botManager.isBot(firstPlayerId)) {
+      await new Promise((resolve) => setTimeout(resolve, 3500));
+      await this.botManager.playBotTurn(gameState, firstPlayerId);
     }
 
     return gameState;
@@ -236,9 +251,8 @@ export class GameService {
         await this.botManager.removeBot(playerId);
       }
     }
-
     // Processar transação financeira se houver um vencedor
-    if (winner && gameState.players.length > 1) {
+    if (!gameState.isBotGame && winner && gameState.players.length > 1) {
       // Fazer o parsing dos jogadores a partir do array de strings JSON
       const players = gameState.players.map((player) => JSON.parse(player));
 

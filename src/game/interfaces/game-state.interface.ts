@@ -31,4 +31,5 @@ export interface GameState {
   isFinished?: boolean;
   winner?: string;
   reason?: string;
+  isBotGame?: boolean;
 }

@@ -21,6 +21,7 @@ export class MatchmakingService {
     betAmount: number,
     delay: number = 500,
     minPlayers: number = 2,
+    isBot: boolean = false,
   ) {
     if (this.activePlayers.has(playerId)) {
       this.logger.error(`Player ${playerId} is already in matchmaking`);
@@ -29,6 +30,24 @@ export class MatchmakingService {
     // Adicionar o jogador à lista de jogadores ativos
     try {
       this.activePlayers.add(playerId);
+      if (isBot) {
+        // Adicionar bots diretamente ao jogo
+        await this.matchmakingQueue.add(
+          'create-game-with-bots',
+          {
+            playerId,
+            botCount: 1,
+            betAmount,
+            botDifficulty: 'easy',
+          },
+          {
+            delay: delay,
+            attempts: 3,
+            removeOnComplete: true,
+          },
+        );
+        return;
+      }
       await this.matchmakingQueue.add(
         'handle-matchmaking',
         {
