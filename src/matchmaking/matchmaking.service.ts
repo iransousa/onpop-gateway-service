@@ -22,6 +22,8 @@ export class MatchmakingService {
     delay: number = 500,
     minPlayers: number = 2,
     isBot: boolean = false,
+    type: string = 'REAL',
+    botDifficulty: string = 'easy',
   ) {
     if (this.activePlayers.has(playerId)) {
       this.logger.error(`Player ${playerId} is already in matchmaking`);
@@ -36,9 +38,10 @@ export class MatchmakingService {
           'create-game-with-bots',
           {
             playerId,
-            botCount: 1,
+            botCount: minPlayers,
             betAmount,
-            botDifficulty: 'easy',
+            botDifficulty,
+            type: 'DEMO',
           },
           {
             delay: delay,
@@ -54,6 +57,7 @@ export class MatchmakingService {
           playerId,
           betAmount,
           minPlayers: 2,
+          type,
         },
         {
           delay: delay,

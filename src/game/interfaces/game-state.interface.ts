@@ -29,6 +29,7 @@ export interface GameState {
   createdAt?: Date;
   finishedAt?: Date;
   isFinished?: boolean;
+  gameType: string;
   winner?: string;
   reason?: string;
   isBotGame?: boolean;

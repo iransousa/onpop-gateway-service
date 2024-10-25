@@ -25,6 +25,7 @@ export class GameStateManager {
     players: string[],
     betAmount: number,
     isBotGame: boolean = false,
+    gameType: string = 'REAL',
   ): Promise<GameState> {
     const roomId = generateRoomId();
     const allTiles = generateAllTiles();
@@ -58,6 +59,7 @@ export class GameStateManager {
       finishedAt: null,
       isFinished: false,
       isBotGame,
+      gameType,
     };
 
     players.forEach((playerId) => {

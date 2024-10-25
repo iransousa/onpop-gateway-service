@@ -9,6 +9,7 @@ interface Player {
   playerId: string;
   betAmount: number;
   minPlayers: number;
+  type: string;
 }
 
 @Injectable()
@@ -28,7 +29,7 @@ export class MatchmakingProcessor extends WorkerHost {
   }
 
   async process(job: Job) {
-    const { playerId, betAmount, minPlayers } = job.data;
+    const { playerId, betAmount, minPlayers, type, botDifficulty } = job.data;
 
     if (job.name === 'handle-matchmaking') {
       this.logger.log(
@@ -36,7 +37,7 @@ export class MatchmakingProcessor extends WorkerHost {
       );
 
       try {
-        const player: Player = { playerId, betAmount, minPlayers };
+        const player: Player = { playerId, betAmount, minPlayers, type };
         this.waitingPlayers.push(player);
         this.logger.log('Current waiting players:', this.waitingPlayers);
 
@@ -49,17 +50,17 @@ export class MatchmakingProcessor extends WorkerHost {
       }
     } else if (job.name === 'create-game-with-bots') {
       await this.handleCreateGameWithBots(
-        job.data.playerId,
-        job.data.botCount,
-        job.data.betAmount,
-        job.data.botDifficulty,
+        playerId,
+        minPlayers,
+        betAmount,
+        botDifficulty,
       );
     }
   }
 
   async handleCreateGameWithBots(
     playerId: string,
-    botCount: number,
+    botCount: number = 3,
     betAmount: number,
     botDifficulty: 'easy' | 'medium' | 'hard',
   ) {
