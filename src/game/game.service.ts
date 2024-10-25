@@ -255,9 +255,12 @@ export class GameService {
     if (!gameState.isBotGame && winner && gameState.players.length > 1) {
       // Fazer o parsing dos jogadores a partir do array de strings JSON
       const players = gameState.players.map((player) => JSON.parse(player));
+      const winnerParsed = JSON.parse(winner);
 
       // Encontrar o vencedor e os perdedores
-      const parsedWinner = players.find((player) => player.name === winner);
+      const parsedWinner = players.find(
+        (player) => player.id === winnerParsed.id,
+      );
       if (!parsedWinner) {
         throw new Error(
           `Vencedor ${winner} não encontrado na lista de jogadores.`,
@@ -265,7 +268,7 @@ export class GameService {
       }
 
       const loserIds = players
-        .filter((player) => player.name !== winner)
+        .filter((player) => player.name !== winnerParsed.name)
         .map((loser) => loser.id);
 
       const betAmount = gameState.betAmount; // Assumindo que `betAmount` esteja no estado do jogo
