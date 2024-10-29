@@ -154,7 +154,8 @@ export class GameStateManager {
         boardEnds: gameState.boardEnds,
         betAmount: gameState.betAmount,
         betTotal: gameState.betAmount * gameState.players.length,
-        primeiraPedraDoBoard: gameState.moveHistory[0].tile,
+        primeiraPedraDoBoard:
+          gameState.moveHistory[gameState.moveHistory.length - 1].tile,
         drawPileCount: gameState.drawPile.length,
       };
     } catch (error) {
