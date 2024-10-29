@@ -37,7 +37,7 @@ export class MatchmakingProcessor extends WorkerHost {
       );
 
       try {
-        const player: Player = { playerId, betAmount, minPlayers, type };
+        const player: Player = { playerId, betAmount: 100, minPlayers, type };
         this.waitingPlayers.push(player);
         this.logger.log('Current waiting players:', this.waitingPlayers);
 
@@ -52,7 +52,7 @@ export class MatchmakingProcessor extends WorkerHost {
       await this.handleCreateGameWithBots(
         playerId,
         minPlayers,
-        100,
+        betAmount,
         botDifficulty,
       );
     }
