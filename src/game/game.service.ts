@@ -287,6 +287,7 @@ export class GameService {
               loserIds: loserIds,
               betAmount: betAmount,
               gameId: roomId,
+              type: gameState.gameType,
             },
           ),
         );
