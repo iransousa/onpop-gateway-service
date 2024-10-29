@@ -159,7 +159,7 @@ export class GameStateManager {
       };
     } catch (error) {
       this.logger.error(`Error getting player game state: ${error}`);
-      throw new GameError('CACHE_ERROR', 'Error accessing the cache');
+      // throw new GameError('CACHE_ERROR', 'Error accessing the cache');
     }
   }
 

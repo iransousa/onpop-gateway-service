@@ -18,29 +18,33 @@ export class GameLogicService {
     tile: Tile,
     side: 'left' | 'right' = 'left',
   ): boolean {
-    this.logger.debug(
-      `Checking if move is valid for player ${gameState.players[gameState.turnIndex]} | Tile(${JSON.stringify(tile)}) | Side(${side}) | Board length: ${gameState.board.length} | Board ends: ${JSON.stringify(gameState.boardEnds)}`,
-    );
-
-    if (gameState.board.length === 0) {
-      // Verifica se a primeira jogada é válida de acordo com as regras
-      return this.isValidFirstMove(gameState, tile);
-    }
-
-    const { left: boardLeft, right: boardRight } = gameState.boardEnds;
-
-    // Garantir que as extremidades não tenham valores inválidos
-    if (boardLeft === -1 || boardRight === -1) {
-      throw new GameError(
-        'INVALID_BOARD_STATE',
-        'Estado inválido do tabuleiro',
+    try {
+      this.logger.debug(
+        `Checking if move is valid for player ${gameState.players[gameState.turnIndex]} | Tile(${JSON.stringify(tile)}) | Side(${side}) | Board length: ${gameState.board.length} | Board ends: ${JSON.stringify(gameState.boardEnds)}`,
       );
-    }
 
-    if (side === 'left') {
-      return tile.left === boardLeft || tile.right === boardLeft;
-    } else {
-      return tile.left === boardRight || tile.right === boardRight;
+      if (gameState.board.length === 0) {
+        // Verifica se a primeira jogada é válida de acordo com as regras
+        return this.isValidFirstMove(gameState, tile);
+      }
+
+      const { left: boardLeft, right: boardRight } = gameState.boardEnds;
+
+      // Garantir que as extremidades não tenham valores inválidos
+      if (boardLeft === -1 || boardRight === -1) {
+        throw new GameError(
+          'INVALID_BOARD_STATE',
+          'Estado inválido do tabuleiro',
+        );
+      }
+
+      if (side === 'left') {
+        return tile.left === boardLeft || tile.right === boardLeft;
+      } else {
+        return tile.left === boardRight || tile.right === boardRight;
+      }
+    } catch (e) {
+      this.logger.error(`Error in isValidMove: ${e.message}`);
     }
   }
 
