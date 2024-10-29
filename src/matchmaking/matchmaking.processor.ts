@@ -52,7 +52,7 @@ export class MatchmakingProcessor extends WorkerHost {
       await this.handleCreateGameWithBots(
         playerId,
         minPlayers,
-        betAmount,
+        100,
         botDifficulty,
       );
     }
@@ -60,14 +60,14 @@ export class MatchmakingProcessor extends WorkerHost {
 
   async handleCreateGameWithBots(
     playerId: string,
-    botCount: number = 3,
+    botCount: number,
     betAmount: number,
     botDifficulty: 'easy' | 'medium' | 'hard',
   ) {
     try {
       const gameState = await this.gameService.initializeGameWithBots(
         [playerId],
-        botCount,
+        botCount === 0 ? 1 : botCount,
         betAmount,
         botDifficulty,
       );
