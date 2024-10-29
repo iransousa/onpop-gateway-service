@@ -44,7 +44,9 @@ export class GameLogicService {
         return tile.left === boardRight || tile.right === boardRight;
       }
     } catch (e) {
-      this.logger.error(`Error in isValidMove: ${e.message}`);
+      this.logger.error(
+        `Error in isValidMove: ${e.message} - ${gameState.boardEnds}`,
+      );
     }
   }
 
