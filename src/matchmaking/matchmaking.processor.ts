@@ -29,6 +29,9 @@ export class MatchmakingProcessor extends WorkerHost {
   }
 
   async process(job: Job) {
+    this.logger.log(
+      `Job - ${job.name} - ${job.id} - ${JSON.stringify(job.data)}`,
+    );
     const { playerId, betAmount, minPlayers, type, botDifficulty } = job.data;
 
     if (job.name === 'handle-matchmaking') {
@@ -219,6 +222,8 @@ export class MatchmakingProcessor extends WorkerHost {
     await this.gameService.createGameRoom(
       players.map((p) => p.playerId),
       players[0].betAmount,
+      false,
+      players[0].type,
     );
 
     // Remover os jogadores da fila de espera

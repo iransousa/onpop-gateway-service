@@ -99,7 +99,12 @@ describe('GameService Integration Test', () => {
     const betAmount = 100;
 
     // Cria o jogo com 1 jogador humano e 3 bots
-    let gameState = await gameService.createGameRoom(players, betAmount);
+    let gameState = await gameService.createGameRoom(
+      players,
+      betAmount,
+      true,
+      'DEMO',
+    );
 
     // Verifica se o primeiro jogador está correto
     const highestDoubleInfo = findHighestDouble(gameState);

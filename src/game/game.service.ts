@@ -35,11 +35,13 @@ export class GameService {
     players: string[],
     betAmount: number,
     isBotGame = false,
+    type: string,
   ): Promise<GameState> {
     const gameState = await this.gameStateManager.createGameState(
       players,
       betAmount,
       isBotGame,
+      type,
     );
 
     // Determine first player
@@ -100,7 +102,12 @@ export class GameService {
     const allPlayers = [...humanPlayers, ...bots];
 
     // Cria a sala de jogo com todos os jogadores, humanos e bots
-    const gameState = await this.createGameRoom(allPlayers, betAmount, true);
+    const gameState = await this.createGameRoom(
+      allPlayers,
+      betAmount,
+      true,
+      'DEMO',
+    );
 
     // Adicionar bots ao BotManager para que possam tomar ações durante o jogo
     for (const botId of bots) {

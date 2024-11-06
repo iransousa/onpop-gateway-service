@@ -269,7 +269,7 @@ export class GatewayService
   ) {
     const playerId = client.data.user.id;
     this.logger.log(
-      `Player ${playerId} joined matchmaking with bet ${data.betAmount}`,
+      `Player ${playerId} joined matchmaking with bet ${data.betAmount} and minPlayers ${data.minPlayers} and isBot ${data.isBot} and type ${data.type} and botDifficulty ${data.botDifficulty}`,
     );
     try {
       await this.matchmakingService.addPlayerToQueue(

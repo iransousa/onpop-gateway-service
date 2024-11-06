@@ -21,9 +21,9 @@ export class MatchmakingService {
     betAmount: number,
     delay: number = 500,
     minPlayers: number = 2,
-    isBot: boolean = false,
+    isBot: boolean,
     type: string = 'REAL',
-    botDifficulty: string = 'easy',
+    botDifficulty: string = 'hard',
   ) {
     if (this.activePlayers.has(playerId)) {
       this.logger.error(`Player ${playerId} is already in matchmaking`);
@@ -34,6 +34,9 @@ export class MatchmakingService {
       this.activePlayers.add(playerId);
       if (isBot) {
         // Adicionar bots diretamente ao jogo
+        this.logger.error(
+          `Create game with bots ${playerId} - ${botDifficulty} - ${type} - ${minPlayers} - ${betAmount}`,
+        );
         await this.matchmakingQueue.add(
           'create-game-with-bots',
           {
