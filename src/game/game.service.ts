@@ -94,10 +94,12 @@ export class GameService {
     botDifficulty: 'easy' | 'medium' | 'hard' = 'hard',
   ): Promise<GameState> {
     // Criar identificadores únicos para cada bot
+    const botsName = ['Dominautor', 'ToninhoTrava', 'MestrePedra'];
+
     const bots = Array.from(
       { length: botCount },
       (_, i) =>
-        `{"id":${Math.floor(Math.random() * 100000000)}, "name":"bot_${i + 1}"}`,
+        `{"id":${Math.floor(Math.random() * 100000000)}, "name":"${botsName[i]}"}`,
     );
     const allPlayers = [...humanPlayers, ...bots];
 
@@ -108,6 +110,8 @@ export class GameService {
       true,
       'DEMO',
     );
+
+    this.logger.debug(`createGameRoomWithBots - ${JSON.stringify(gameState)}`);
 
     // Adicionar bots ao BotManager para que possam tomar ações durante o jogo
     for (const botId of bots) {

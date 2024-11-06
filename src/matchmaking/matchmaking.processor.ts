@@ -32,7 +32,7 @@ export class MatchmakingProcessor extends WorkerHost {
     this.logger.log(
       `Job - ${job.name} - ${job.id} - ${JSON.stringify(job.data)}`,
     );
-    const { playerId, betAmount, minPlayers, type, botDifficulty } = job.data;
+    const { playerId, betAmount, botCount, type, botDifficulty } = job.data;
 
     if (job.name === 'handle-matchmaking') {
       this.logger.log(
@@ -40,7 +40,12 @@ export class MatchmakingProcessor extends WorkerHost {
       );
 
       try {
-        const player: Player = { playerId, betAmount: 100, minPlayers, type };
+        const player: Player = {
+          playerId,
+          betAmount: 100,
+          minPlayers: botCount,
+          type,
+        };
         this.waitingPlayers.push(player);
         this.logger.log('Current waiting players:', this.waitingPlayers);
 
@@ -54,9 +59,9 @@ export class MatchmakingProcessor extends WorkerHost {
     } else if (job.name === 'create-game-with-bots') {
       await this.handleCreateGameWithBots(
         playerId,
-        minPlayers,
+        botCount,
         betAmount,
-        botDifficulty,
+        'hard',
       );
     }
   }
@@ -68,6 +73,9 @@ export class MatchmakingProcessor extends WorkerHost {
     botDifficulty: 'easy' | 'medium' | 'hard',
   ) {
     try {
+      this.logger.log(
+        `handleCreateGameWithBots for player ${playerId} - ${botCount} - ${betAmount} - ${botDifficulty}`,
+      );
       const gameState = await this.gameService.initializeGameWithBots(
         [playerId],
         botCount === 0 ? 1 : botCount,

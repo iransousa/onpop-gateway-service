@@ -42,7 +42,7 @@ export class MatchmakingService {
           {
             playerId,
             botCount: minPlayers,
-            betAmount,
+            betAmount: 0,
             botDifficulty,
             type: 'DEMO',
           },
