@@ -102,7 +102,7 @@ export class BotManager {
   }
 
   private async simulateThinking() {
-    const delay = Math.floor(Math.random() * 2000) + 1000;
+    const delay = Math.floor(Math.random() * 500) + 1000;
     return new Promise((resolve) => setTimeout(resolve, delay));
   }
 
